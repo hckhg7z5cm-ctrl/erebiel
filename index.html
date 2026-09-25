@@ -19,6 +19,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&display=swap" rel="stylesheet">
+<script>
+  // Kayıtlı temayı ilk boyamadan önce uygula (yanıp sönmeyi önler)
+  try{if(localStorage.getItem("archon-theme")==="light"){document.documentElement.setAttribute("data-theme","light");document.querySelector('meta[name="color-scheme"]').content="light";document.querySelector('meta[name="theme-color"]').content="#e9eeed";}}catch(e){}
+</script>
 <style>
   :root{
     --void:#030606;--spectral:#7bd3d6;--stone:#b7c6c7;--whisper:#5c7375;
@@ -37,6 +41,44 @@
   .vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(120% 100% at 50% 44%,transparent 24%,rgba(0,0,0,.62) 70%,rgba(0,0,0,.96) 100%)}
   @keyframes d1{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-52%,-46%) scale(1.08)}}
   @keyframes d2{0%,100%{transform:translate(-50%,-50%) scale(1.05)}50%{transform:translate(-48%,-54%) scale(1)}}
+
+  /* ---------- THEME (dark default · light optional) ---------- */
+  /* Gradients can't be transitioned, so the light ground is its own layer that fades in */
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity .9s ease;
+      background:radial-gradient(120% 100% at 50% 44%,transparent 30%,rgba(60,82,84,.1) 72%,rgba(40,58,60,.22) 100%),
+                 radial-gradient(120% 90% at 50% 40%,#f7f9f8 0%,#e9eeed 52%,#d8e0df 100%)}
+  .vignette{transition:opacity .9s ease}
+  .theme-toggle{position:fixed;top:calc(2.4vh + env(safe-area-inset-top));right:calc(4vw + env(safe-area-inset-right));z-index:8;width:34px;height:34px;border-radius:50%;padding:0;cursor:pointer;display:grid;place-items:center;overflow:hidden;
+      background:transparent;border:1px solid rgba(123,211,214,.16);color:var(--whisper);opacity:0;animation:pageIn 1.6s ease 1.2s forwards;
+      transition:color .5s ease,border-color .5s ease,background-color .5s ease,transform .4s ease}
+  .theme-toggle:hover,.theme-toggle:focus-visible{color:var(--spectral);border-color:rgba(123,211,214,.45);transform:scale(1.08);outline:none}
+  .theme-toggle svg{grid-area:1/1;width:16px;height:16px;transition:opacity .5s ease,transform .7s cubic-bezier(.16,1,.3,1)}
+  .theme-toggle .i-moon{opacity:0;transform:rotate(-70deg) scale(.6)}
+
+  html[data-theme="light"] body::before{opacity:1}
+  html[data-theme="light"] .vignette{opacity:0}
+  html[data-theme="light"] .blob{mix-blend-mode:multiply}
+  html[data-theme="light"] .theme-toggle{color:#5f7476;border-color:rgba(40,70,72,.22)}
+  html[data-theme="light"] .theme-toggle:hover,html[data-theme="light"] .theme-toggle:focus-visible{color:#276e73;border-color:rgba(39,110,115,.5)}
+  html[data-theme="light"] .theme-toggle .i-sun{opacity:0;transform:rotate(70deg) scale(.6)}
+  html[data-theme="light"] .theme-toggle .i-moon{opacity:1;transform:none}
+  /* the three symbols stay dark lenses; only their rims and shadows adapt to the pale ground */
+  html[data-theme="light"] .orb-dark{border-color:rgba(24,70,74,.38);box-shadow:0 12px 34px rgba(24,44,46,.28),inset 0 0 22px rgba(0,0,0,.6)}
+  html[data-theme="light"] .orb-dark:hover,html[data-theme="light"] .orb-dark:focus-visible{border-color:rgba(39,110,115,.7);box-shadow:0 0 46px rgba(39,110,115,.38),inset 0 0 22px rgba(0,0,0,.5)}
+  html[data-theme="light"] .orb-light{border-color:rgba(160,118,40,.5);box-shadow:0 12px 36px rgba(140,100,30,.26)}
+  html[data-theme="light"] .orb-light:hover,html[data-theme="light"] .orb-light:focus-visible{border-color:rgba(190,140,50,.85);box-shadow:0 0 56px rgba(201,154,63,.45)}
+  html[data-theme="light"] .mirror-btn{border-color:rgba(60,82,84,.4);box-shadow:0 14px 42px rgba(24,44,46,.3),inset 0 4px 20px rgba(200,230,235,.14),inset 0 -10px 26px rgba(0,0,0,.6)}
+  html[data-theme="light"] .mirror-btn:hover,html[data-theme="light"] .mirror-btn:focus-visible{border-color:rgba(60,82,84,.7);box-shadow:0 0 60px rgba(70,120,125,.4),inset 0 4px 22px rgba(210,235,240,.2),inset 0 -10px 26px rgba(0,0,0,.55)}
+  html[data-theme="light"] .info-dot{background:rgba(60,82,84,.35)}
+  html[data-theme="light"] .info-dot:hover,html[data-theme="light"] .info-dot:focus-visible{background:rgba(39,110,115,.75)}
+  html[data-theme="light"] .safety-overlay{background:rgba(236,241,240,.94)}
+  html[data-theme="light"] .safety-card{color:#35474a}
+  html[data-theme="light"] .safety-card .x{color:#6b7f81}
+  html[data-theme="light"] .safety-card .x:hover{color:#276e73}
+  /* Archon chat in daylight: cool pale stone, deep teal accent (Multivac is already light) */
+  html[data-theme="light"] #chat[data-persona="archon"]{--c-bg:#eef2f1;--c-fg:#1f2b2c;--c-accent:#276e73;--c-user-bg:rgba(39,110,115,.08);--c-user-fg:#1c2a2b;--c-user-br:rgba(39,110,115,.24);--c-bot-fg:#18292a;--c-bot-bg:rgba(39,110,115,.045);--c-head:#4d6365;--c-br:rgba(39,110,115,.2);--c-input-bg:#ffffff;--c-place:#8a9c9d}
+  html[data-theme="light"] #chat[data-persona="archon"] .chat-bg{background:radial-gradient(90% 55% at 50% 0%,rgba(39,110,115,.09),transparent 60%)}
+  html[data-theme="light"] .glyph-arc svg{filter:brightness(.5) saturate(2)}
 
   /* ---------- THRESHOLD (wordless) ---------- */
   #threshold{position:relative;z-index:5;min-height:100dvh;display:flex;align-items:center;justify-content:center;gap:clamp(1rem,5vw,3rem);padding:8vh 4vw;opacity:0;animation:rise 1.6s ease .6s forwards}
@@ -118,6 +160,13 @@
   @keyframes camPulse{0%{filter:brightness(.5) contrast(1.06) saturate(.82)}40%{filter:brightness(.7) contrast(1.14) saturate(.92)}100%{filter:brightness(.5) contrast(1.06) saturate(.82)}}
   .m-tint{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 100% at 50% 45%,rgba(35,95,100,.3),rgba(6,20,22,.5) 70%);mix-blend-mode:overlay}
   .m-vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 100% at 50% 42%,transparent 22%,rgba(0,0,0,.72) 68%,#000 100%)}
+  /* reveal: after the greeting the veil lifts — filter eases to natural with a faint overshoot bloom */
+  #cam{transition:opacity 1.4s ease,filter 3.2s cubic-bezier(.22,.9,.3,1.12)}
+  .m-tint,.m-vignette{transition:opacity 3.2s cubic-bezier(.4,0,.2,1)}
+  .mirror.clear #cam{filter:none}
+  .mirror.clear #cam.pulse{animation:camPulseClear .8s ease}
+  @keyframes camPulseClear{0%,100%{filter:none}40%{filter:brightness(1.14) contrast(1.06)}}
+  .mirror.clear .m-tint,.mirror.clear .m-vignette{opacity:0}
   .void-note{position:absolute;left:50%;top:32%;transform:translate(-50%,-50%);width:min(80vw,32ch);text-align:center;font-weight:300;font-size:.74rem;letter-spacing:.12em;line-height:1.7;color:var(--whisper);opacity:0;transition:opacity 1s ease}
   .void-note.show{opacity:1}
   .m-speech{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:min(84vw,30ch);text-align:center;font-weight:300;letter-spacing:.02em;line-height:1.55;font-size:clamp(1.12rem,5vw,1.7rem);color:#e8f5f6;text-shadow:0 2px 20px rgba(0,0,0,.92),0 0 30px rgba(0,0,0,.6);min-height:3.2em}
@@ -134,7 +183,7 @@
   .m-icobtn:hover,.m-icobtn:focus-visible{color:var(--spectral)}
   .m-close{font-size:1.5rem;line-height:1}
 
-  @media (prefers-reduced-motion:reduce){*{animation-duration:.001s!important;animation-iteration-count:1!important}body,#threshold{opacity:1}}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.001s!important;animation-iteration-count:1!important}body,#threshold,.theme-toggle{opacity:1}body::before,.vignette,.theme-toggle svg,.m-tint,.m-vignette{transition:none}#cam{transition:opacity .3s ease}}
 </style>
 </head>
 <body>
@@ -176,6 +225,11 @@
       </svg>
     </button>
   </section>
+
+  <button class="theme-toggle" id="themeToggle" aria-label="Tema" aria-pressed="false">
+    <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.55 1.55M17.15 17.15l1.55 1.55M5.3 18.7l1.55-1.55M17.15 6.85l1.55-1.55"/></svg>
+    <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M20 14.6A8 8 0 019.4 4a8 8 0 1010.6 10.6z"/></svg>
+  </button>
 
   <button class="info-dot" id="infoDot" aria-label="Bilgi"></button>
   <div class="safety-overlay" id="safety">
@@ -323,8 +377,8 @@ GÜVENLİK (HER ŞEYİN ÜSTÜNDE):
 DİL: Türkçe. Kısa ve yakın.`;
 
   const SYS={archon:ARCHON_SYS,multivac:MULTIVAC_SYS,mirror:MIRROR_SYS};
-  const GREET={archon:"Söyle. Neyi görmemi istiyorsun — yoksa neyi görmemden mi korkuyorsun?",multivac:"Otur. Bugün seni buraya getiren şey ne? Anlat, birlikte bakalım."};
-  const MIRROR_PRIME="(Kullanıcı aynada kendine bakıyor. Onun bastırdığı yanı olarak, birinci tekil şahısla ona ilk sözünü söyle. Kısa.)";
+  const GREET={archon:"Merhaba, Archon'a hoş geldin. Sana nasıl yardımcı olabilirim?",multivac:"Merhaba, Multivac'a hoş geldin. Sana nasıl yardımcı olabilirim?"};
+  const MIRROR_GREET="Merhaba, Ayna'ya hoş geldin.";
   const MIRROR_FALLBACK=[
     "Herkese iyi olduğumu söylüyorum. Değilim.",
     "Kendime anlattığım hikâyeye artık ben de inanmıyorum.",
@@ -398,9 +452,11 @@ DİL: Türkçe. Kısa ve yakın.`;
 
   /* ---- MIRROR (twin brain, ephemeral) ---- */
   const mirror=$("mirror"),cam=$("cam"),speech=$("speech"),voidNote=$("voidNote"),mInput=$("mInput"),mSendBtn=$("mSend");
-  let stream=null,mApi=[],mBusy=false,mFallback=false,mFbTimer=null,mFbOrder=[],mFbIdx=0;
+  let stream=null,mApi=[],mBusy=false,mFallback=false,mFbTimer=null,mFbOrder=[],mFbIdx=0,mGreetTimer=null;
   const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
   function pulseCam(){cam.classList.remove("pulse");void cam.offsetWidth;cam.classList.add("pulse");}
+  // drop the dim filter, tint and vignette so the reflection comes through clean (pulse is cleared first so its keyframes don't fight the transition)
+  function revealCam(){if(mirror.classList.contains("clear"))return;cam.classList.remove("pulse");mirror.classList.add("clear");}
   function typeSpeech(text){return new Promise(res=>{speech.style.transition="opacity .5s ease";speech.style.opacity=1;let i=0;(function step(){if(i<=text.length){speech.innerHTML=text.slice(0,i)+'<span class="mcaret">▍</span>';i++;setTimeout(step,reduce?0:40+Math.random()*46);}else{speech.innerHTML=text+'<span class="mcaret">▍</span>';res();}})();});}
   function fadeSpeech(){return new Promise(res=>{if(!speech.textContent){res();return;}speech.style.opacity=0;setTimeout(()=>{speech.textContent="";res();},reduce?0:520);});}
   async function mShow(text){pulseCam();await fadeSpeech();await typeSpeech(text);speak(text,"mirror");}
@@ -427,15 +483,15 @@ DİL: Türkçe. Kısa ve yakın.`;
       cam.style.opacity=0;voidNote.textContent="Ayna karanlıkta — kamera erişimi engellenmiş olabilir. Güvenli (https) bir sitede yansıman belirir.";voidNote.classList.add("show");
     }
     requestAnimationFrame(()=>mirror.classList.add("open"));
-    mApi=[{role:"user",content:MIRROR_PRIME}];mFallback=false;mBusy=true;clearTimeout(mFbTimer);
+    mApi=[];mFallback=false;mBusy=true;clearTimeout(mFbTimer);clearTimeout(mGreetTimer);mirror.classList.remove("clear");cam.classList.remove("pulse");
     setTimeout(()=>input&&null,0);
-    mWaiting();
-    try{const line=await ask("mirror",mApi);mApi.push({role:"assistant",content:line});await mShow(line);}
-    catch(e){startFallback();}
+    // sabit giriş cümlesi; sonra yazı yavaşça kaybolur ve geriye yalnızca yansıma kalır
+    try{await mShow(MIRROR_GREET);}
     finally{mBusy=false;}
+    mGreetTimer=setTimeout(()=>{if(mirror.classList.contains("open")){fadeSpeech();revealCam();}},reduce?800:2600);
   }
   async function mSend(){
-    const t=mInput.value.trim();if(!t||mBusy)return;mInput.value="";
+    const t=mInput.value.trim();if(!t||mBusy)return;mInput.value="";clearTimeout(mGreetTimer);revealCam();
     if(mFallback){const line=MIRROR_FALLBACK[Math.floor(Math.random()*MIRROR_FALLBACK.length)];await mShow(line);return;}
     mApi.push({role:"user",content:t});mBusy=true;mWaiting();
     try{const line=await ask("mirror",mApi);mApi.push({role:"assistant",content:line});await mShow(line);}
@@ -443,18 +499,34 @@ DİL: Türkçe. Kısa ve yakın.`;
     finally{mBusy=false;}
   }
   function closeMirror(){
-    stopSpeak();mirror.classList.remove("open");clearTimeout(mFbTimer);mFallback=false;
+    stopSpeak();mirror.classList.remove("open");clearTimeout(mFbTimer);clearTimeout(mGreetTimer);mFallback=false;
     if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;cam.srcObject=null;}
     cam.style.opacity=0;
-    setTimeout(()=>{mirror.setAttribute("aria-hidden","true");speech.textContent="";voidNote.classList.remove("show");mApi=[];},reduce?0:1200);
+    setTimeout(()=>{mirror.setAttribute("aria-hidden","true");mirror.classList.remove("clear");cam.classList.remove("pulse");speech.textContent="";voidNote.classList.remove("show");mApi=[];},reduce?0:1200);
   }
+
+  /* ---- THEME ---- */
+  const root=document.documentElement,themeBtn=$("themeToggle");
+  function applyTheme(t){
+    const light=t==="light";
+    if(light)root.setAttribute("data-theme","light");else root.removeAttribute("data-theme");
+    document.querySelector('meta[name="color-scheme"]').content=light?"light":"dark";
+    document.querySelector('meta[name="theme-color"]').content=light?"#e9eeed":"#030606";
+    themeBtn.setAttribute("aria-pressed",String(light));
+  }
+  applyTheme(root.getAttribute("data-theme")==="light"?"light":"dark");
+  themeBtn.addEventListener("click",()=>{
+    const next=root.getAttribute("data-theme")==="light"?"dark":"light";
+    applyTheme(next);
+    try{localStorage.setItem("archon-theme",next);}catch(e){}
+  });
 
   /* ---- SAFETY ---- */
   $("infoDot").addEventListener("click",()=>$("safety").classList.add("on"));
   $("safetyClose").addEventListener("click",()=>$("safety").classList.remove("on"));
 
   /* ---- wiring ---- */
-  document.querySelectorAll("[data-persona]").forEach(el=>el.addEventListener("click",()=>enterChat(el.getAttribute("data-persona"))));
+  document.querySelectorAll("#threshold [data-persona]").forEach(el=>el.addEventListener("click",()=>enterChat(el.getAttribute("data-persona"))));
   $("mirrorBtn").addEventListener("click",openMirror);
   $("mClose").addEventListener("click",closeMirror);
   backBtn.addEventListener("click",backToGate);
