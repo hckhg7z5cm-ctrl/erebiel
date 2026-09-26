@@ -104,6 +104,33 @@
   .breath{animation:breath 7s ease-in-out infinite}
   @keyframes breath{0%,100%{opacity:.82}50%{opacity:1}}
   
+  /* ---------- AURAS (behind Archon & Multivac) ---------- */
+  /* a blurred, slowly turning conic ring per symbol; two layers at different speeds keep it organic */
+  .aura-host{position:relative;display:grid;place-items:center;isolation:isolate;z-index:0}
+  .mirror-btn{z-index:1}
+  .aura{position:absolute;inset:-42%;z-index:-1;pointer-events:none;border-radius:50%;filter:blur(26px);
+      -webkit-mask-image:radial-gradient(closest-side,#000 36%,transparent 100%);mask-image:radial-gradient(closest-side,#000 36%,transparent 100%);
+      animation:auraBreath 12s ease-in-out infinite;transition:opacity 1.2s ease}
+  .aura::before,.aura::after{content:"";position:absolute;inset:0;border-radius:50%;background:var(--aura);animation:auraSpin 52s linear infinite}
+  .aura::after{inset:14%;background:var(--aura2);animation:auraSpin 76s linear infinite reverse,auraPulse 9s ease-in-out infinite}
+  @keyframes auraSpin{to{transform:rotate(360deg)}}
+  @keyframes auraBreath{0%,100%{transform:scale(.93)}50%{transform:scale(1.07)}}
+  @keyframes auraPulse{0%,100%{opacity:.45}50%{opacity:.9}}
+  /* Archon: deep, dim, fog-veiled — plum, indigo, abyssal teal, oxblood */
+  .aura-archon{opacity:.55;
+      --aura:conic-gradient(from 20deg,#3b1a66,#262c80,#125e63,#6a1a36,#3b1a66);
+      --aura2:conic-gradient(from 200deg,#1c2a70,#4a1a5c,#0f4d52,#551230,#1c2a70)}
+  /* Multivac: soft pastel dawn — rose, lavender, sky, mint, peach */
+  .aura-multivac{opacity:.26;
+      --aura:conic-gradient(from 0deg,#ffc8dd,#cdb4db,#bde0fe,#caffbf,#ffd6a5,#ffc8dd);
+      --aura2:conic-gradient(from 180deg,#ffd6a5,#bde0fe,#ffc8dd,#cdb4db,#caffbf,#ffd6a5)}
+  .aura-host:hover .aura-archon,.aura-host:focus-within .aura-archon{opacity:.8}
+  .aura-host:hover .aura-multivac,.aura-host:focus-within .aura-multivac{opacity:.4}
+  html[data-theme="light"] .aura-archon{opacity:.38}
+  html[data-theme="light"] .aura-multivac{opacity:.85}
+  html[data-theme="light"] .aura-host:hover .aura-archon,html[data-theme="light"] .aura-host:focus-within .aura-archon{opacity:.55}
+  html[data-theme="light"] .aura-host:hover .aura-multivac,html[data-theme="light"] .aura-host:focus-within .aura-multivac{opacity:1}
+
   /* tiny safety access */
   .info-dot{position:fixed;left:50%;bottom:calc(2.4vh + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;width:7px;height:7px;border-radius:50%;background:rgba(120,150,152,.35);border:none;cursor:pointer;padding:0;transition:background .4s ease,transform .4s ease}
   .info-dot:hover,.info-dot:focus-visible{background:rgba(150,200,205,.7);transform:translateX(-50%) scale(1.3);outline:none}
@@ -193,6 +220,7 @@
 
   <!-- ================= THRESHOLD (wordless) ================= -->
   <section id="threshold">
+    <div class="aura-host"><span class="aura aura-archon" aria-hidden="true"></span>
     <button class="orb orb-side orb-dark breath" data-persona="archon" aria-label="Archon">
       <svg viewBox="0 0 440 220" aria-hidden="true">
         <defs>
@@ -208,9 +236,11 @@
         <path d="M14 110 C 120 18, 320 18, 426 110 C 320 202, 120 202, 14 110 Z" fill="none" stroke="rgba(120,185,190,.18)" stroke-width="1.4"/>
       </svg>
     </button>
+    </div>
 
     <button class="mirror-btn breath" id="mirrorBtn" aria-label="Ayna"><span class="mirror-shimmer"></span></button>
 
+    <div class="aura-host"><span class="aura aura-multivac" aria-hidden="true"></span>
     <button class="orb orb-side orb-light breath" data-persona="multivac" aria-label="Multivac">
       <svg viewBox="0 0 240 240" aria-hidden="true">
         <defs>
@@ -224,6 +254,7 @@
         <circle cx="120" cy="120" r="33" fill="none" stroke="rgba(255,236,190,.7)" stroke-width="1.4"/><circle cx="120" cy="120" r="25" fill="url(#mvPupil)"/><circle cx="120" cy="120" r="6" fill="#fff"/>
       </svg>
     </button>
+    </div>
   </section>
 
   <button class="theme-toggle" id="themeToggle" aria-label="Tema" aria-pressed="false">
