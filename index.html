@@ -131,6 +131,49 @@
   html[data-theme="light"] .aura-host:hover .aura-archon,html[data-theme="light"] .aura-host:focus-within .aura-archon{opacity:.55}
   html[data-theme="light"] .aura-host:hover .aura-multivac,html[data-theme="light"] .aura-host:focus-within .aura-multivac{opacity:1}
 
+  /* ---------- HOME: hero (first / >24h) vs compact (returning) ---------- */
+  .brand{position:fixed;top:calc(2.6vh + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:8;background:none;border:none;cursor:pointer;
+      font-family:"Cinzel",serif;font-weight:600;font-size:.78rem;letter-spacing:.42em;padding:.5em .2em .5em .62em;color:var(--whisper);transition:color .4s ease}
+  .brand:hover,.brand:focus-visible{color:var(--spectral);outline:none}
+  /* compact: the symbols shrink into a thin dock under the wordmark */
+  body.compact #threshold{position:fixed;top:calc(2.6vh + env(safe-area-inset-top) + 2.6rem);left:0;right:0;min-height:0;padding:.8rem 4vw 1rem;gap:clamp(1.6rem,7vw,2.6rem);animation:dockIn .9s ease both}
+  body.compact #threshold::after{content:"";position:absolute;left:20%;right:20%;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(123,211,214,.2),transparent)}
+  body.compact .orb-side{width:46px}
+  body.compact .mirror-btn{width:54px}
+  body.compact .aura{inset:-34%;filter:blur(12px)}
+  @keyframes dockIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  #resume{position:fixed;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;pointer-events:none;
+      padding:calc(2.6vh + env(safe-area-inset-top) + 9rem) 5vw calc(7vh + env(safe-area-inset-bottom));animation:rise 1.1s ease .15s both}
+  #resume[hidden]{display:none}
+  .res-card{--acc:var(--spectral);pointer-events:auto;width:min(100%,27rem);padding:1.5rem 1.4rem 1.35rem;border-radius:22px;color:var(--stone);
+      border:1px solid rgba(123,211,214,.14);background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+      -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 20px 60px rgba(0,0,0,.45)}
+  .res-card[data-persona="multivac"]{--acc:#d8ad55}
+  .res-eyebrow{font-size:.68rem;letter-spacing:.28em;text-transform:uppercase;color:var(--whisper);margin-bottom:1.1rem}
+  .res-head{display:flex;align-items:center;gap:.85rem;margin-bottom:.95rem}
+  .res-av{width:40px;height:40px;border-radius:50%;flex:none;animation:breath 7s ease-in-out infinite}
+  .res-card[data-persona="archon"] .res-av{background:radial-gradient(circle,#fff 0 12%,#c3eef4 24%,#3f8e95 50%,#0a1618 78%,#030606 100%);box-shadow:0 0 18px rgba(123,211,214,.3),0 0 0 1px rgba(123,211,214,.3)}
+  .res-card[data-persona="multivac"] .res-av{background:radial-gradient(circle,#fff 0 12%,#fff1cf 28%,#e9c877 55%,rgba(216,173,85,.15) 100%);box-shadow:0 0 22px rgba(233,200,119,.35)}
+  .res-meta{display:flex;flex-direction:column;gap:.2rem}
+  .res-name{font-family:"Cinzel",serif;font-weight:600;letter-spacing:.18em;font-size:.86rem;color:#dbe7e8}
+  .res-time{font-size:.74rem;color:var(--whisper)}
+  .res-snippet{font-size:.95rem;line-height:1.55;font-weight:300;color:#b7c6c7;margin-bottom:1.3rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .res-actions{display:flex;gap:.6rem}
+  .res-go{flex:1;width:100%;height:3.1rem;border-radius:14px;border:1px solid var(--acc);background:transparent;color:var(--acc);cursor:pointer;
+      font-family:var(--sans);font-size:1rem;letter-spacing:.06em;display:flex;align-items:center;justify-content:center;gap:.5em;
+      transition:background-color .35s ease,color .35s ease,box-shadow .35s ease}
+  .res-go[data-start="multivac"]{--acc:#d8ad55}
+  .res-go:hover,.res-go:focus-visible{background:var(--acc);color:#030606;box-shadow:0 0 28px rgba(123,211,214,.22);outline:none}
+  html[data-theme="light"] .brand{color:#5f7476}
+  html[data-theme="light"] .brand:hover,html[data-theme="light"] .brand:focus-visible{color:#276e73}
+  html[data-theme="light"] body.compact #threshold::after{background:linear-gradient(90deg,transparent,rgba(40,70,72,.2),transparent)}
+  html[data-theme="light"] .res-card{--acc:#276e73;color:#2a3a3b;border-color:rgba(40,70,72,.14);background:rgba(255,255,255,.6);box-shadow:0 18px 50px rgba(24,44,46,.14)}
+  html[data-theme="light"] .res-card[data-persona="multivac"],html[data-theme="light"] .res-go[data-start="multivac"]{--acc:#a87a22}
+  html[data-theme="light"] .res-name{color:#1f2b2c}
+  html[data-theme="light"] .res-snippet{color:#3c4d4f}
+  html[data-theme="light"] .res-eyebrow,html[data-theme="light"] .res-time{color:#6b7f81}
+  html[data-theme="light"] .res-go:hover,html[data-theme="light"] .res-go:focus-visible{color:#fff}
+
   /* tiny safety access */
   .info-dot{position:fixed;left:50%;bottom:calc(2.4vh + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;width:7px;height:7px;border-radius:50%;background:rgba(120,150,152,.35);border:none;cursor:pointer;padding:0;transition:background .4s ease,transform .4s ease}
   .info-dot:hover,.info-dot:focus-visible{background:rgba(150,200,205,.7);transform:translateX(-50%) scale(1.3);outline:none}
@@ -256,6 +299,9 @@
     </button>
     </div>
   </section>
+
+  <button class="brand" id="brand" aria-label="Ana ekran" hidden>EREBIEL</button>
+  <section id="resume" hidden><div class="res-card" id="resCard"></div></section>
 
   <button class="theme-toggle" id="themeToggle" aria-label="Tema" aria-pressed="false">
     <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.55 1.55M17.15 17.15l1.55 1.55M5.3 18.7l1.55-1.55M17.15 6.85l1.55-1.55"/></svg>
@@ -467,21 +513,62 @@ DİL: Türkçe. Kısa ve yakın.`;
   muteBtn.addEventListener("click",()=>setMuted(!muted));
   $("mMute").addEventListener("click",()=>setMuted(!muted));
 
+  /* ---- HOME MODE (hero vs compact) + last conversation ---- */
+  const resumeEl=$("resume"),resCard=$("resCard"),brandBtn=$("brand");
+  const K_VISIT="erebiel-last-visit",K_CHAT="erebiel-last-chat",DAY=864e5,NAMES={archon:"Archon",multivac:"Multivac"};
+  function load(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
+  function store(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  const lastVisit=Number(load(K_VISIT))||0;
+  let homeMode=(!lastVisit||Date.now()-lastVisit>DAY)?"hero":"compact";
+  store(K_VISIT,Date.now());
+  // keep the tail of the conversation; the API needs it to start with a user turn
+  function saveChat(p,hist){const h=hist.slice(-40);while(h.length&&h[0].role!=="user")h.shift();if(h.length)store(K_CHAT,{persona:p,api:h,ts:Date.now()});}
+  function lastChat(){const c=load(K_CHAT);return c&&NAMES[c.persona]&&Array.isArray(c.api)&&c.api.length?c:null;}
+  function ago(ts){const s=Math.max(0,(Date.now()-ts)/1000);if(s<60)return "az önce";const m=Math.floor(s/60);if(m<60)return m+" dakika önce";const h=Math.floor(m/60);if(h<24)return h+" saat önce";const d=Math.floor(h/24);return d===1?"dün":d+" gün önce";}
+  function renderResume(){
+    const c=lastChat();
+    if(c){
+      const lastUser=[...c.api].reverse().find(m=>m.role==="user");
+      resCard.setAttribute("data-persona",c.persona);
+      resCard.innerHTML='<p class="res-eyebrow">Kaldığın yerden</p><div class="res-head"><span class="res-av"></span><div class="res-meta"><span class="res-name"></span><span class="res-time"></span></div></div><p class="res-snippet"></p><button class="res-go">Devam et <span aria-hidden="true">→</span></button>';
+      resCard.querySelector(".res-name").textContent=NAMES[c.persona];
+      resCard.querySelector(".res-time").textContent=ago(c.ts);
+      resCard.querySelector(".res-snippet").textContent="“"+(lastUser?lastUser.content:"").replace(/\s+/g," ").trim()+"”";
+      resCard.querySelector(".res-go").addEventListener("click",()=>enterChat(c.persona,c.api));
+    }else{
+      resCard.removeAttribute("data-persona");
+      resCard.innerHTML='<p class="res-eyebrow">Henüz bir sohbetin yok</p><p class="res-snippet">Yukarıdan bir varlık seç ya da buradan başla.</p><div class="res-actions"><button class="res-go" data-start="archon">Archon</button><button class="res-go" data-start="multivac">Multivac</button></div>';
+      resCard.querySelectorAll("[data-start]").forEach(b=>b.addEventListener("click",()=>enterChat(b.getAttribute("data-start"))));
+    }
+  }
+  function showHome(){
+    const compact=homeMode==="compact";
+    document.body.classList.toggle("compact",compact);
+    threshold.style.display="";resumeEl.hidden=!compact;brandBtn.hidden=!compact;
+    if(compact)renderResume();
+  }
+  // wordmark → back to the full ceremony
+  brandBtn.addEventListener("click",()=>{homeMode="hero";threshold.style.animation="none";void threshold.offsetWidth;threshold.style.animation="";showHome();});
+  showHome();
+
   /* ---- CHAT ---- */
   function addBubble(role,text){const d=document.createElement("div");d.className="msg "+(role==="user"?"user":"bot");d.textContent=text;messages.appendChild(d);messages.scrollTop=messages.scrollHeight;return d;}
   function addThinking(){const d=document.createElement("div");d.className="msg bot thinking";d.innerHTML="<span></span><span></span><span></span>";messages.appendChild(d);messages.scrollTop=messages.scrollHeight;return d;}
-  function enterChat(p){
-    persona=p;api=[];busy=false;chat.setAttribute("data-persona",p);input.value="";messages.innerHTML="";
+  // saved: a stored history to resume ("Devam et"); otherwise a fresh conversation
+  function enterChat(p,saved){
+    persona=p;api=saved?saved.slice():[];busy=false;chat.setAttribute("data-persona",p);input.value="";messages.innerHTML="";
     addBubble("bot",GREET[p]);
-    threshold.style.display="none";chat.hidden=false;requestAnimationFrame(()=>chat.classList.add("show"));
-    setTimeout(()=>input.focus(),80);speak(GREET[p],p);
+    if(saved)saved.forEach(m=>addBubble(m.role,m.content));
+    threshold.style.display="none";resumeEl.hidden=true;brandBtn.hidden=true;chat.hidden=false;requestAnimationFrame(()=>chat.classList.add("show"));
+    setTimeout(()=>input.focus(),80);if(!saved)speak(GREET[p],p);
   }
-  function backToGate(){stopSpeak();chat.classList.remove("show");setTimeout(()=>{chat.hidden=true;threshold.style.display="";},reduce?0:400);persona=null;api=[];messages.innerHTML="";}
+  function backToGate(){stopSpeak();chat.classList.remove("show");setTimeout(()=>{chat.hidden=true;showHome();},reduce?0:400);persona=null;api=[];messages.innerHTML="";}
   async function send(){
     const text=input.value.trim();if(!text||busy||!persona)return;
-    stopSpeak();input.value="";input.style.height="2.7em";addBubble("user",text);api.push({role:"user",content:text});
+    const p=persona,hist=api;
+    stopSpeak();input.value="";input.style.height="2.7em";addBubble("user",text);hist.push({role:"user",content:text});saveChat(p,hist);
     busy=true;sendBtn.disabled=true;const think=addThinking();
-    try{const reply=await ask(persona,api);think.remove();addBubble("bot",reply);api.push({role:"assistant",content:reply});speak(reply,persona);}
+    try{const reply=await ask(p,hist);think.remove();hist.push({role:"assistant",content:reply});saveChat(p,hist);if(api===hist){addBubble("bot",reply);speak(reply,p);}}
     catch(e){think.remove();addBubble("bot",persona==="archon"?"Bağlantı koptu. Karanlık her zaman konuşmaz. Tekrar dene.":"Şu an bağlantı kurulamadı. Bir an bekle, sonra tekrar dene.");console.error(e);}
     finally{busy=false;sendBtn.disabled=false;input.focus();}
   }
