@@ -21,7 +21,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
 <script>
   // Kayıtlı temayı ilk boyamadan önce uygula (yanıp sönmeyi önler)
-  try{if(localStorage.getItem("archon-theme")==="light"){document.documentElement.setAttribute("data-theme","light");document.querySelector('meta[name="color-scheme"]').content="light";document.querySelector('meta[name="theme-color"]').content="#f0eadf";}if(localStorage.getItem("erebiel-accent")==="silver")document.documentElement.setAttribute("data-accent","silver");}catch(e){}
+  try{if(localStorage.getItem("archon-theme")==="light"){document.documentElement.setAttribute("data-theme","light");document.querySelector('meta[name="color-scheme"]').content="light";document.querySelector('meta[name="theme-color"]').content="#faf8f5";}if(localStorage.getItem("erebiel-accent")==="silver")document.documentElement.setAttribute("data-accent","silver");}catch(e){}
 </script>
 <style>
   :root{
@@ -66,7 +66,6 @@
 
   html[data-theme="light"] body::before{opacity:1}
   html[data-theme="light"] .vignette{opacity:0}
-  html[data-theme="light"] .blob{mix-blend-mode:multiply}
   html[data-theme="light"] .theme-toggle .i-sun{opacity:0;transform:rotate(70deg) scale(.6)}
   html[data-theme="light"] .theme-toggle .i-moon{opacity:1;transform:none}
   html[data-theme="light"] .info-dot{background:rgba(90,70,45,.35)}
@@ -79,12 +78,12 @@
   /* ---------- THRESHOLD: three light forms, asymmetric ---------- */
   #threshold{position:relative;z-index:5;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(2.6rem,8vh,4.6rem);padding:14vh 4vw 10vh;opacity:0;animation:rise 1.6s var(--ease) .6s forwards}
   /* size hierarchy from one unit: Multivac large (1.3) · Archon & Mirror medium (1) · Characters small (.7) */
-  .sym-row{--m:min(clamp(120px,22vh,175px),24vw);display:flex;align-items:flex-end;justify-content:center;gap:clamp(1.1rem,calc(11vw - 1.5rem),8.5rem)}
+  .sym-row{--m:min(clamp(120px,22vh,175px),24vw);--aw:min(56px,12vw);display:flex;align-items:flex-end;justify-content:center;gap:clamp(1.1rem,calc(11vw - 1.5rem),8.5rem)}
   .sym{position:relative;background:none;border:none;padding:0 0 2rem;cursor:pointer;color:inherit;display:flex;flex-direction:column;align-items:center;-webkit-tap-highlight-color:transparent}
   .sym:focus-visible{outline:none}
   /* uneven sizes, gaps and heights — nothing on one line */
-  .sym-archon{--w:min(56px,12vw);--h:var(--m)}
-  .sym-mirror{--h:var(--m);--w:calc(var(--m) / 1.46)}
+  .sym-archon{--w:var(--aw);--h:var(--m)}
+  .sym-mirror{--h:var(--m);--w:calc(var(--m) / 1.46);transform:translateX(calc(var(--m) * .1625 - var(--aw) * .125))}
   .sym-multivac{--w:calc(var(--m) * 1.3);--h:var(--w)}
   .glyph{position:relative;display:block;width:var(--w);height:var(--h);isolation:isolate;transition:transform .3s var(--ease),filter .3s var(--ease)}
   .sym:hover .glyph,.sym:focus-visible .glyph,.sym:active .glyph{transform:scale(1.06);filter:brightness(1.2)}
@@ -92,6 +91,7 @@
   .sym-mirror .form{animation-delay:-1.2s}.sym-multivac .form{animation-delay:-2.4s}.sym-characters .form{animation-delay:-.6s}
   /* Characters — a small gathering of points of light, smaller than the other three */
   .sym-characters{--w:calc(var(--m) * .7);--h:var(--w);--g:255,236,200;--s:226,229,233}
+  .ch-orb{display:none}
   .form-characters{border-radius:50%;
       background:radial-gradient(circle at 28% 38%,rgba(var(--g),.95) 0,rgba(var(--g),.95) 4%,transparent 10%),
                  radial-gradient(circle at 55% 24%,rgba(var(--s),.9) 0,rgba(var(--s),.9) 3%,transparent 8%),
@@ -102,7 +102,6 @@
                  radial-gradient(circle at 60% 76%,rgba(var(--g),.65) 0,rgba(var(--g),.65) 2.5%,transparent 6.5%),
                  radial-gradient(circle at 36% 18%,rgba(var(--g),.55) 0,rgba(var(--g),.55) 2%,transparent 5.5%),
                  radial-gradient(circle at 50% 48%,rgba(var(--accent-rgb),.16),transparent 62%)}
-  html[data-theme="light"] .sym-characters{--g:150,108,38;--s:92,96,102}
   /* narrow screens: characters drops below the row instead of squeezing it */
   @keyframes breathe{0%,100%{opacity:.78;transform:scale(.965)}50%{opacity:1;transform:scale(1.035)}}
   @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
@@ -121,10 +120,6 @@
   .sym-label{position:absolute;left:50%;bottom:0;transform:translateX(-50%);white-space:nowrap;font-size:.66rem;font-weight:500;letter-spacing:.34em;padding-left:.34em;text-transform:lowercase;color:var(--silver);opacity:.8;transition:opacity .3s var(--ease)}
   .sym:hover .sym-label,.sym:focus-visible .sym-label{opacity:1}
   @media (max-width:520px){.sym-label{font-size:.6rem;letter-spacing:.2em;padding-left:.2em}}
-  html[data-theme="light"] .form-archon::before{background:linear-gradient(to bottom,transparent,rgba(40,95,100,.22) 28%,rgba(30,80,85,.38) 50%,rgba(40,95,100,.22) 72%,transparent)}
-  html[data-theme="light"] .form-archon::after{background:linear-gradient(to bottom,transparent,#2c5559 24%,#12282a 50%,#2c5559 76%,transparent);box-shadow:none}
-  html[data-theme="light"] .form-mirror{box-shadow:0 8px 26px rgba(90,70,45,.18),inset 0 0 14px rgba(40,42,46,.3)}
-  html[data-theme="light"] .form-multivac{background:radial-gradient(circle,rgba(246,200,120,.95) 0%,rgba(236,180,95,.62) 22%,rgba(222,160,80,.3) 44%,rgba(205,145,70,.1) 60%,transparent 72%)}
 
   /* empty state: a quiet line in the page itself, no card */
   .invite{display:flex;justify-content:center;text-align:center;animation:rise 1.2s var(--ease) 1.4s both}
@@ -143,7 +138,7 @@
   @keyframes auraPulse{0%,100%{opacity:.45}50%{opacity:.9}}
   .sym-archon .aura{inset:-12% -140%}
   /* Archon: deep, dim, fog-veiled — plum, indigo, abyssal teal, oxblood */
-  .aura-archon{opacity:.5;
+  .aura-archon{opacity:.62;
       --aura:conic-gradient(from 20deg,#3b1a66,#262c80,#125e63,#6a1a36,#3b1a66);
       --aura2:conic-gradient(from 200deg,#1c2a70,#4a1a5c,#0f4d52,#551230,#1c2a70)}
   /* Multivac: soft pastel dawn — rose, lavender, sky, mint, peach */
@@ -159,14 +154,101 @@
       --aura2:conic-gradient(from 270deg,#d4af6a,#e8e8ea,#c9a25e,#c8c9cc,#d4af6a)}
   .sym:hover .aura-mirror,.sym:focus-visible .aura-mirror{opacity:.45}
   .sym:hover .aura-characters,.sym:focus-visible .aura-characters{opacity:.4}
-  html[data-theme="light"] .aura-mirror{opacity:.5}
-  html[data-theme="light"] .aura-characters{opacity:.5}
-  .sym:hover .aura-archon,.sym:focus-visible .aura-archon{opacity:.75}
+  .sym:hover .aura-archon,.sym:focus-visible .aura-archon{opacity:.82}
   .sym:hover .aura-multivac,.sym:focus-visible .aura-multivac{opacity:.36}
-  html[data-theme="light"] .aura-archon{opacity:.34}
-  html[data-theme="light"] .aura-multivac{opacity:.8}
-  html[data-theme="light"] .sym:hover .aura-archon,html[data-theme="light"] .sym:focus-visible .aura-archon{opacity:.5}
-  html[data-theme="light"] .sym:hover .aura-multivac,html[data-theme="light"] .sym:focus-visible .aura-multivac{opacity:1}
+
+  /* =====================================================================
+     LIGHT MODE — its own palette, not derived from the dark look.
+     Dusty pastel: every hue low-saturation, as if filtered through grey.
+     Auras turn and breathe like in dark mode but blend normally —
+     no mix-blend-mode anywhere in light mode.
+     ===================================================================== */
+  html[data-theme="light"]{--multivac:#E8A33D;--archon:#7C93A3;--mirror-light:#D4CFC0;--mirror-dark:#8C8578;
+      --char-rose:#C9A0A0;--char-sage:#9CAF88;--char-blue:#8FA3B3;--char-gold:#D4B483}
+  html[data-theme="light"] body::before{background:radial-gradient(120% 100% at 50% 44%,transparent 40%,rgba(214,196,176,.08) 80%,rgba(200,180,160,.14) 100%),
+      radial-gradient(120% 90% at 50% 40%,#fdfcfa 0%,#faf8f5 55%,#f4efe8 100%)}
+  /* two soft warm washes drifting behind everything */
+  html[data-theme="light"] .blob{mix-blend-mode:normal;filter:blur(60px)}
+  html[data-theme="light"] .b1{background:radial-gradient(circle,rgba(124,147,163,.06),transparent 60%)}
+  html[data-theme="light"] .b2{background:radial-gradient(circle,rgba(255,138,61,.07),transparent 60%)}
+  /* jewel tones render at full strength; Multivac keeps its existing softening untouched */
+  html[data-theme="light"] .glyph{filter:none}
+  html[data-theme="light"] .sym:hover .glyph,html[data-theme="light"] .sym:focus-visible .glyph,html[data-theme="light"] .sym:active .glyph{filter:brightness(1.08)}
+  html[data-theme="light"] .sym-multivac .glyph,html[data-theme="light"] .res-card[data-persona="multivac"] .res-av{filter:saturate(.6) brightness(1.05)}
+  html[data-theme="light"] .sym-multivac:hover .glyph,html[data-theme="light"] .sym-multivac:focus-visible .glyph,html[data-theme="light"] .sym-multivac:active .glyph{filter:saturate(.75) brightness(1.05)}
+  /* auras: same turning/breathing layers as dark, vivid light-mode colours */
+  html[data-theme="light"] .aura-archon{opacity:.55;
+      --aura:conic-gradient(from 20deg,#DCD5C6,#CFC9BE,#E6DCC6,#C9C4BA,#DCD5C6);
+      --aura2:conic-gradient(from 200deg,#E6DCC6,#D2CCC0,#DCD5C6,#E6DCC6)}
+  html[data-theme="light"] .aura-mirror{opacity:.42;
+      --aura:conic-gradient(from 0deg,#D4CFC0,#B0A99A,#F0EDE4,#B0A99A,#D4CFC0);
+      --aura2:conic-gradient(from 180deg,#B0A99A,#D4CFC0,#B0A99A)}
+  html[data-theme="light"] .aura-multivac{opacity:.52;
+      --aura:conic-gradient(from 0deg,#ffe066,#ffb347,#ffd24d,#ff9f43,#ffe066);
+      --aura2:conic-gradient(from 180deg,#ff9f43,#ffe066,#ffb347,#ffd24d,#ff9f43)}
+  html[data-theme="light"] .aura-characters{opacity:.44;
+      --aura:conic-gradient(from 90deg,#E8C27A,#E4E1DA,#E6D3AE,#D9B0A2,#E8C27A);
+      --aura2:conic-gradient(from 270deg,#E4E1DA,#E8C27A,#E6D3AE,#E4E1DA)}
+  html[data-theme="light"] .sym:hover .aura-archon,html[data-theme="light"] .sym:focus-visible .aura-archon{opacity:.7}
+  html[data-theme="light"] .sym:hover .aura-mirror,html[data-theme="light"] .sym:focus-visible .aura-mirror{opacity:.56}
+  html[data-theme="light"] .sym:hover .aura-multivac,html[data-theme="light"] .sym:focus-visible .aura-multivac{opacity:.68}
+  html[data-theme="light"] .sym:hover .aura-characters,html[data-theme="light"] .sym:focus-visible .aura-characters{opacity:.58}
+  /* Archon — dusty slate-blue thread */
+  html[data-theme="light"] .form-archon::after{width:2.5px;border-radius:2px;filter:none;background:linear-gradient(to bottom,var(--archon) 0%,var(--archon) 22%,#9483C4 50%,var(--archon) 78%,var(--archon) 100%);box-shadow:0 0 6px rgba(148,131,196,.35);
+      -webkit-mask-image:linear-gradient(to bottom,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(to bottom,transparent,#000 12%,#000 88%,transparent)}
+  html[data-theme="light"] .form-archon::before{width:3px;top:8%;bottom:8%;border-radius:3px;filter:none;background:transparent;
+      box-shadow:0 0 72px 22px rgba(214,206,190,.45),0 0 28px 8px rgba(206,200,188,.4)}
+  html[data-theme="light"] .form-archon{background:radial-gradient(ellipse 30% 22% at 50% 50%,rgba(148,131,196,.28),rgba(148,131,196,0) 100%)}
+  /* Mirror — glassy platinum with a bright reflection */
+  html[data-theme="light"] .form-mirror{border:1.2px solid #B0A99A;filter:none;
+      background:radial-gradient(circle at 35% 25%,#FFFFFF 0%,#F0EDE4 25%,#D4CFC0 55%,#B0A99A 85%);
+      box-shadow:0 0 50px 15px rgba(212,207,192,0.4)}
+  html[data-theme="light"] .form-mirror::before{content:"";position:absolute;left:24%;top:13%;width:15%;height:11%;border-radius:50%;
+      background:radial-gradient(circle,#FFFFFF 0%,rgba(255,255,255,.9) 45%,rgba(255,255,255,0) 100%);filter:blur(1.5px);transform:rotate(-24deg)}
+  /* Multivac — pastel sun: soft yellow core, warm orange rim */
+  html[data-theme="light"] .form-multivac{inset:0;border-radius:0;filter:blur(3px);box-shadow:none;
+      background:radial-gradient(circle at 50% 50%,#fffbe6 0%,#fff1a8 13%,rgba(255,226,122,.92) 24%,rgba(255,200,97,0) 42%),
+                 radial-gradient(ellipse 29% 24% at 36% 42%,rgba(255,228,125,.9),rgba(255,210,100,0) 100%),
+                 radial-gradient(ellipse 27% 32% at 62% 60%,rgba(255,190,92,.85),rgba(255,162,76,0) 100%),
+                 radial-gradient(ellipse 24% 20% at 60% 36%,rgba(255,214,112,.8),rgba(255,190,90,0) 100%),
+                 radial-gradient(ellipse 22% 25% at 38% 64%,rgba(255,172,82,.7),rgba(255,162,76,0) 100%),
+                 radial-gradient(ellipse 17% 14% at 54% 48%,rgba(255,160,76,.3),rgba(255,160,76,0) 100%)}
+  /* Characters — the dark-mode cluster exactly (same eight points, same centres, same apparent sizes, same
+     central glow and breathing), rendered as metallic spheres in gold, platinum-silver, champagne and a
+     champagne/dried-rose blend. Geometry below is derived from the dark rule's gradient stops. */
+  html[data-theme="light"] .form-characters{background:radial-gradient(circle at 50% 48%,rgba(232,194,122,.2),transparent 62%)}
+  html[data-theme="light"] .ch-orb{display:block;position:absolute;border-radius:50%}
+  html[data-theme="light"] .ch-orb::after{content:"";position:absolute;left:18%;top:14%;width:36%;height:28%;border-radius:50%;
+      background:radial-gradient(circle,rgba(255,255,255,.95) 0%,rgba(255,255,255,0) 100%);transform:rotate(-28deg)}
+  html[data-theme="light"] .ch-orb.o1{width:calc(var(--w) * 0.1387);height:calc(var(--w) * 0.1387);left:calc(28.0% - calc(var(--w) * 0.06935));top:calc(38.0% - calc(var(--w) * 0.06935));--glow:calc(var(--w) * 0.0855)}
+  html[data-theme="light"] .ch-orb.o2{width:calc(var(--w) * 0.1079);height:calc(var(--w) * 0.1079);left:calc(55.0% - calc(var(--w) * 0.05395));top:calc(24.0% - calc(var(--w) * 0.05395));--glow:calc(var(--w) * 0.0675)}
+  html[data-theme="light"] .ch-orb.o3{width:calc(var(--w) * 0.1546);height:calc(var(--w) * 0.1546);left:calc(67.0% - calc(var(--w) * 0.0773));top:calc(56.0% - calc(var(--w) * 0.0773));--glow:calc(var(--w) * 0.0943)}
+  html[data-theme="light"] .ch-orb.o4{width:calc(var(--w) * 0.1043);height:calc(var(--w) * 0.1043);left:calc(40.0% - calc(var(--w) * 0.05215));top:calc(68.0% - calc(var(--w) * 0.05215));--glow:calc(var(--w) * 0.0653)}
+  html[data-theme="light"] .ch-orb.o5{width:calc(var(--w) * 0.1038);height:calc(var(--w) * 0.1038);left:calc(80.0% - calc(var(--w) * 0.0519));top:calc(33.0% - calc(var(--w) * 0.0519));--glow:calc(var(--w) * 0.0657)}
+  html[data-theme="light"] .ch-orb.o6{width:calc(var(--w) * 0.0862);height:calc(var(--w) * 0.0862);left:calc(19.0% - calc(var(--w) * 0.0431));top:calc(63.0% - calc(var(--w) * 0.0431));--glow:calc(var(--w) * 0.0554)}
+  html[data-theme="light"] .ch-orb.o7{width:calc(var(--w) * 0.091);height:calc(var(--w) * 0.091);left:calc(60.0% - calc(var(--w) * 0.0455));top:calc(76.0% - calc(var(--w) * 0.0455));--glow:calc(var(--w) * 0.0566)}
+  html[data-theme="light"] .ch-orb.o8{width:calc(var(--w) * 0.0817);height:calc(var(--w) * 0.0817);left:calc(36.0% - calc(var(--w) * 0.04085));top:calc(18.0% - calc(var(--w) * 0.04085));--glow:calc(var(--w) * 0.0515)}
+  /* gold */
+  html[data-theme="light"] .ch-orb.o1,html[data-theme="light"] .ch-orb.o5,html[data-theme="light"] .ch-orb.o8{
+background:radial-gradient(circle at 36% 32%,#FFF6D8 0%,#F2D48A 16%,#E0B45A 32%,#C8963F 44%,rgba(200,150,63,.45) 62%,rgba(200,150,63,.14) 82%,rgba(200,150,63,0) 100%);
+      box-shadow:0 0 var(--glow) calc(var(--glow) * .35) rgba(232,180,90,.55),0 0 calc(var(--glow) * 2.6) rgba(232,180,90,.32);filter:blur(1.4px)}
+  /* platinum-silver */
+  html[data-theme="light"] .ch-orb.o2,html[data-theme="light"] .ch-orb.o6{
+background:radial-gradient(circle at 36% 32%,#FFFFFF 0%,#EDEBE6 16%,#C9C5BC 32%,#AAA59B 44%,rgba(170,165,155,.45) 62%,rgba(170,165,155,.14) 82%,rgba(170,165,155,0) 100%);
+      box-shadow:0 0 var(--glow) calc(var(--glow) * .35) rgba(205,200,190,.55),0 0 calc(var(--glow) * 2.6) rgba(205,200,190,.32);filter:blur(1.4px)}
+  /* champagne / dried-rose blend */
+  html[data-theme="light"] .ch-orb.o3{
+background:radial-gradient(circle at 36% 32%,#FFF4EE 0%,#F0D6C8 16%,#D9B0A2 32%,#C19590 44%,rgba(193,149,144,.45) 62%,rgba(193,149,144,.14) 82%,rgba(193,149,144,0) 100%);
+      box-shadow:0 0 var(--glow) calc(var(--glow) * .35) rgba(214,168,156,.55),0 0 calc(var(--glow) * 2.6) rgba(214,168,156,.32);filter:blur(1.4px)}
+  /* champagne */
+  html[data-theme="light"] .ch-orb.o4,html[data-theme="light"] .ch-orb.o7{
+background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,#C8AE7E 44%,rgba(200,174,126,.45) 62%,rgba(200,174,126,.14) 82%,rgba(200,174,126,0) 100%);
+      box-shadow:0 0 var(--glow) calc(var(--glow) * .35) rgba(226,206,160,.55),0 0 calc(var(--glow) * 2.6) rgba(226,206,160,.32);filter:blur(1.4px)}
+  html[data-theme="light"] .sym-characters:hover .ch-orb{filter:blur(1.4px) brightness(1.1)}
+  /* the same shapes in miniature: chat header + resume card */
+  html[data-theme="light"] .mini-beam{width:2.5px;border-radius:2px;background:var(--archon);box-shadow:0 0 6px rgba(124,147,163,.35)}
+  html[data-theme="light"] .res-card[data-persona="archon"] .res-av{background:linear-gradient(var(--archon),var(--archon)) center/2.5px 80% no-repeat}
+  html[data-theme="light"] .res-card[data-persona="multivac"] .res-av{border-radius:50%;background:radial-gradient(circle at 46% 42%,#fffbe6,#fff1a8 26%,#ffe27a 54%,#ffa24c 100%);transform:scale(.7);box-shadow:0 0 16px 4px rgba(255,170,80,.35);animation:none}
 
   /* ---------- HOME: hero (first / >24h) vs compact (returning) ---------- */
   .brand{position:fixed;top:calc(2.6vh + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:8;background:none;border:none;cursor:pointer;
@@ -179,9 +261,8 @@
   /* compact: the forms shrink into a small dock under the wordmark (labels hidden, offsets flattened) */
   body.compact #threshold{position:fixed;top:calc(2.6vh + env(safe-area-inset-top) + 3.8rem);left:0;right:0;min-height:0;padding:.8rem 4vw 1rem;animation:dockIn .9s var(--ease) both}
   body.compact .sym{padding:0}
-  body.compact .sym-row{--m:44px;gap:clamp(1.4rem,6vw,2.4rem);align-items:center}
+  body.compact .sym-row{--m:44px;--aw:22px;gap:clamp(1.4rem,6vw,2.4rem);align-items:center}
   body.compact .sym-label{display:none}
-  body.compact .sym-archon{--w:22px}
   body.compact .aura{filter:blur(12px)}
   @keyframes dockIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
   #resume{position:fixed;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;pointer-events:none;
@@ -207,8 +288,6 @@
   html[data-theme="light"] .brand-word{text-shadow:none}
   html[data-theme="light"] .res-card{--acc:#276e73;border-color:rgba(var(--accent-rgb),.28);background:rgba(255,255,255,.6);box-shadow:0 18px 50px rgba(70,52,32,.12)}
   html[data-theme="light"] .res-card[data-persona="multivac"]{--acc:#a87a22}
-  html[data-theme="light"] .res-card[data-persona="archon"] .res-av{background:radial-gradient(ellipse 9% 50% at 50% 50%,#12282a,rgba(40,95,100,.3) 55%,transparent 100%)}
-  html[data-theme="light"] .res-card[data-persona="multivac"] .res-av{background:radial-gradient(circle,rgba(246,200,120,.95) 0%,rgba(236,180,95,.55) 30%,transparent 70%)}
   html[data-theme="light"] .res-go:hover,html[data-theme="light"] .res-go:focus-visible{color:#fff}
 
   /* tiny safety access */
@@ -226,11 +305,10 @@
       background:var(--void);opacity:0;transition:opacity .5s var(--ease)}
   .page.show{opacity:1}
   .page[hidden]{display:none}
-  html[data-theme="light"] .page{background:#f0eadf}
+  html[data-theme="light"] .page{background:#faf8f5}
   .page .glyph{--w:120px;--h:120px;margin-bottom:.6rem}
   .page .sym-characters{--g:255,236,200;--s:226,229,233}
   .page .sym-characters[hidden]{display:none}
-  html[data-theme="light"] .page .sym-characters{--g:150,108,38;--s:92,96,102}
   .page-title{font-family:"Cinzel",serif;font-weight:600;font-size:.9rem;letter-spacing:.42em;padding-left:.42em;color:var(--accent);text-transform:uppercase}
   .page-sub{font-size:.72rem;font-weight:500;letter-spacing:.34em;padding-left:.34em;color:var(--silver);opacity:.8}
   .page-back{position:absolute;top:calc(2.4vh + env(safe-area-inset-top));left:calc(4vw + env(safe-area-inset-left));background:none;border:none;cursor:pointer;
@@ -270,9 +348,9 @@
       font-family:var(--sans);font-size:.8rem;font-weight:500;letter-spacing:.08em;color:var(--silver);transition:color .3s var(--ease)}
   .sheet-item svg{width:18px;height:18px;opacity:.7}
   .sheet-item:hover,.sheet-item:focus-visible,.sheet-item.is-active{color:var(--accent);outline:none}
-  html[data-theme="light"] .rail{background:linear-gradient(to right,rgba(240,234,223,.6),rgba(240,234,223,0))}
+  html[data-theme="light"] .rail{background:linear-gradient(to right,rgba(250,248,245,.7),rgba(250,248,245,0))}
   html[data-theme="light"] .rail .nav-item::after{background:rgba(250,247,240,.95);box-shadow:0 4px 14px rgba(70,52,32,.12)}
-  html[data-theme="light"] .tabbar{background:linear-gradient(to top,rgba(240,234,223,.92),rgba(240,234,223,0))}
+  html[data-theme="light"] .tabbar{background:linear-gradient(to top,rgba(250,248,245,.94),rgba(250,248,245,0))}
   html[data-theme="light"] .more-sheet{background:rgba(250,247,240,.97);box-shadow:0 14px 40px rgba(70,52,32,.16)}
   @media (min-width:720px){
     .sym-row{--m:min(clamp(120px,22vh,175px),16.5vw)}
@@ -306,7 +384,6 @@
   .who-glyph{width:24px;height:24px;display:grid;place-items:center}
   .mini-beam{display:block;width:2px;height:22px;margin:0 auto;background:linear-gradient(to bottom,transparent,#fff 50%,transparent);box-shadow:0 0 8px rgba(215,240,243,.7)}
   .mini-cloud{display:block;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle,#f0c070 0%,rgba(225,165,80,.55) 35%,transparent 70%)}
-  html[data-theme="light"] .mini-beam{background:linear-gradient(to bottom,transparent,#12282a 50%,transparent);box-shadow:none}
   body.speaking .who-glyph{animation:spk 1s ease-in-out infinite}
   @keyframes spk{0%,100%{transform:scale(1);filter:none}50%{transform:scale(1.16);filter:drop-shadow(0 0 6px var(--c-accent))}}
   .glyph-mv{display:none}
@@ -384,7 +461,7 @@
         <span class="sym-label">multivac</span>
       </button>
       <button class="sym sym-characters" id="charactersBtn" aria-label="Characters">
-        <span class="glyph"><span class="aura aura-characters" aria-hidden="true"></span><span class="form form-characters"></span></span>
+        <span class="glyph"><span class="aura aura-characters" aria-hidden="true"></span><span class="form form-characters"><i class="ch-orb o1"></i><i class="ch-orb o2"></i><i class="ch-orb o3"></i><i class="ch-orb o4"></i><i class="ch-orb o5"></i><i class="ch-orb o6"></i><i class="ch-orb o7"></i><i class="ch-orb o8"></i></span></span>
         <span class="sym-label">characters</span>
       </button>
     </div>
@@ -414,7 +491,7 @@
   <!-- ================= PAGES ================= -->
   <section class="page" id="soon" hidden>
     <button class="page-back" data-close aria-label="Geri">‹</button>
-    <div class="sym-characters" id="soonGlyph"><span class="glyph"><span class="form form-characters"></span></span></div>
+    <div class="sym-characters" id="soonGlyph"><span class="glyph"><span class="form form-characters"><i class="ch-orb o1"></i><i class="ch-orb o2"></i><i class="ch-orb o3"></i><i class="ch-orb o4"></i><i class="ch-orb o5"></i><i class="ch-orb o6"></i><i class="ch-orb o7"></i><i class="ch-orb o8"></i></span></span></div>
     <p class="page-title" id="soonTitle" lang="en"></p>
     <p class="page-sub">yakında</p>
   </section>
@@ -768,7 +845,7 @@ DİL: Türkçe. Kısa ve yakın.`;
     const light=t==="light";
     if(light)root.setAttribute("data-theme","light");else root.removeAttribute("data-theme");
     document.querySelector('meta[name="color-scheme"]').content=light?"light":"dark";
-    document.querySelector('meta[name="theme-color"]').content=light?"#f0eadf":"#0a0806";
+    document.querySelector('meta[name="theme-color"]').content=light?"#faf8f5":"#0a0806";
     themeBtn.setAttribute("aria-pressed",String(light));
   }
   applyTheme(root.getAttribute("data-theme")==="light"?"light":"dark");
