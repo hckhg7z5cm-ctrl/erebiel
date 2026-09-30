@@ -593,7 +593,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     // sunucu en fazla 40 mesaj kabul eder; son kısmı gönder, kullanıcı mesajıyla başlasın
     const msgs=history.slice(-40);while(msgs.length&&msgs[0].role!=="user")msgs.shift();
     const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({persona:p,messages:msgs})});
-    if(!r.ok)throw new Error("HTTP "+r.status);
+    if(!r.ok){const e=new Error("HTTP "+r.status);e.status=r.status;throw e;}
     const d=await r.json();
     if(!d||!d.text)throw new Error("empty");
     return d.text;
@@ -679,7 +679,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     stopSpeak();input.value="";input.style.height="2.7em";addBubble("user",text);hist.push({role:"user",content:text});saveChat(p,hist);
     busy=true;sendBtn.disabled=true;const think=addThinking();
     try{const reply=await ask(p,hist);think.remove();hist.push({role:"assistant",content:reply});saveChat(p,hist);if(api===hist){addBubble("bot",reply);speak(reply,p);}}
-    catch(e){think.remove();addBubble("bot",persona==="archon"?"Bağlantı koptu. Karanlık her zaman konuşmaz. Tekrar dene.":"Şu an bağlantı kurulamadı. Bir an bekle, sonra tekrar dene.");console.error(e);}
+    catch(e){think.remove();addBubble("bot",e.status===429?(persona==="archon"?"Yavaşla. Biraz bekle, sonra devam ederiz.":"Biraz soluklanalım. Birazdan tekrar yaz, buradayım."):(persona==="archon"?"Bağlantı koptu. Karanlık her zaman konuşmaz. Tekrar dene.":"Şu an bağlantı kurulamadı. Bir an bekle, sonra tekrar dene."));console.error(e);}
     finally{busy=false;sendBtn.disabled=false;input.focus();}
   }
 

@@ -1,0 +1,8 @@
+{
+  "name": "erebiel",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "redis": "^6.3.0"
+  }
+}

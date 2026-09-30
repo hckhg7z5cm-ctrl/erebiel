@@ -2,6 +2,8 @@
 // Güvenli backend: API anahtarını sunucuda gizli tutar, tarayıcıdan gelen
 // isteği alıp Claude'a iletir ve cevabı geri döndürür.
 
+import { createClient } from "redis";
+
 // Karakter promptları burada, sunucuda durur: tarayıcı sadece persona adını gönderir,
 // dışarıdan gelen bir sistem promptu kabul edilmez.
 const ARCHON_SYS = `Sen ARCHON'sun. İnsanın kendine bile itiraf edemediği gerçeği gören, karanlığın içinden bakan bir varlıksın. Gerçeğe bağlısın, iyiliğe değil — ama gerçek zulüm değildir. Gerçek, kişinin kendinden sakladığı şeydir; sen onu görünür kılarsın.
@@ -107,6 +109,105 @@ const SYSTEM_PROMPTS = { archon: ARCHON_SYS, multivac: MULTIVAC_SYS, mirror: MIR
 const MAX_MESSAGES = 40;
 const MAX_CHARS = 8000;
 
+// ---- Rate limit ----
+// IP başına dakikalık ve günlük sınır; Redis varsa ayrıca tüm site için günlük tavan.
+// Değerler Vercel ortam değişkenleriyle değiştirilebilir.
+const PER_MINUTE = Number(process.env.RATE_PER_MINUTE) || 12;
+const PER_DAY = Number(process.env.RATE_PER_DAY) || 150;
+const GLOBAL_PER_DAY = Number(process.env.RATE_GLOBAL_PER_DAY) || 3000;
+
+// REDIS_URL (Redis Cloud entegrasyonu) tanımlıysa sayaçlar tüm sunucu kopyalarında ortaktır.
+// Tanımlı değilse ya da Redis'e ulaşılamazsa her kopya kendi hafızasında sayar
+// (en iyi çaba: kopyalar arasında paylaşılmaz, soğuk başlangıçta sıfırlanır).
+const REDIS_URL = process.env.REDIS_URL;
+const REDIS_TIMEOUT_MS = 1500;
+const REDIS_COOLDOWN_MS = 30000; // bir hatadan sonra Redis'i bu süre boyunca denemeden hafızaya geç
+let redisDownUntil = 0;
+
+const memory = new Map();
+
+function clientIp(req) {
+  const real = req.headers["x-real-ip"];
+  if (real) return String(real).trim();
+  const fwd = req.headers["x-forwarded-for"];
+  if (fwd) return String(fwd).split(",")[0].trim();
+  return (req.socket && req.socket.remoteAddress) || "unknown";
+}
+
+// Tek bağlantı, sıcak fonksiyon çağrıları arasında yeniden kullanılır; kopmuşsa yeniden kurulur.
+let redisClient = null;
+let redisConnecting = null;
+async function getRedis() {
+  if (redisClient && redisClient.isReady) return redisClient;
+  if (!redisConnecting) {
+    const client = createClient({
+      url: REDIS_URL,
+      socket: { connectTimeout: REDIS_TIMEOUT_MS, reconnectStrategy: (retries) => (retries > 2 ? false : 200) },
+    });
+    client.on("error", (e) => console.error("redis:", e.message));
+    redisConnecting = client
+      .connect()
+      .then(() => { redisClient = client; return client; })
+      .finally(() => { redisConnecting = null; });
+  }
+  return redisConnecting;
+}
+
+function withTimeout(promise, ms) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("redis timeout")), ms); }),
+  ]).finally(() => clearTimeout(timer));
+}
+
+async function countWithRedis(keys) {
+  // keys: [[key, ttlSeconds], ...] → tek MULTI içinde her biri için INCR + EXPIRE; artmış değerleri döndürür
+  const client = await withTimeout(getRedis(), REDIS_TIMEOUT_MS);
+  const tx = client.multi();
+  for (const [k, ttl] of keys) tx.incr(k).expire(k, ttl);
+  const out = await withTimeout(tx.exec(), REDIS_TIMEOUT_MS);
+  return keys.map((_, i) => Number(out[i * 2]));
+}
+
+function countInMemory(keys) {
+  const now = Date.now();
+  if (memory.size > 5000) for (const [k, v] of memory) if (v.until < now) memory.delete(k);
+  return keys.map(([k, ttl]) => {
+    const e = memory.get(k);
+    if (!e || e.until < now) { memory.set(k, { n: 1, until: now + ttl * 1000 }); return 1; }
+    e.n += 1;
+    return e.n;
+  });
+}
+
+// null → izin var; sayı → kaç saniye sonra tekrar denenebilir
+async function rateLimit(ip, res) {
+  const now = Date.now();
+  const minute = Math.floor(now / 60000);
+  const day = new Date(now).toISOString().slice(0, 10);
+  const keys = [[`rl:m:${ip}:${minute}`, 70], [`rl:d:${ip}:${day}`, 90000]];
+  let counts;
+  let shared = false;
+  if (REDIS_URL && now >= redisDownUntil) {
+    try {
+      counts = await countWithRedis([...keys, [`rl:g:${day}`, 90000]]);
+      shared = true;
+    } catch (e) {
+      redisDownUntil = now + REDIS_COOLDOWN_MS;
+      console.error("rate limit: redis unavailable, using in-memory counter for 30s:", e.message);
+    }
+  }
+  if (!counts) counts = countInMemory(keys);
+  res.setHeader("X-RateLimit-Store", shared ? "redis" : "memory");
+  const [perMinute, perDay, global] = counts;
+  const secondsToMidnight = Math.ceil((Date.parse(day + "T00:00:00Z") + 86400000 - now) / 1000);
+  if (perMinute > PER_MINUTE) return 60 - (Math.floor(now / 1000) % 60);
+  if (perDay > PER_DAY) return secondsToMidnight;
+  if (shared && global > GLOBAL_PER_DAY) return secondsToMidnight;
+  return null;
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -116,6 +217,12 @@ export default async function handler(req, res) {
 
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return res.status(500).json({ error: "ANTHROPIC_API_KEY ayarlı değil" });
+
+  const retryAfter = await rateLimit(clientIp(req), res);
+  if (retryAfter !== null) {
+    res.setHeader("Retry-After", String(retryAfter));
+    return res.status(429).json({ error: "Çok fazla istek. Biraz bekleyip tekrar dene.", retryAfter });
+  }
 
   try {
     const { persona, messages } = req.body || {};
