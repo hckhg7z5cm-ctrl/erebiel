@@ -321,6 +321,15 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   .seg button{background:none;border:none;cursor:pointer;padding:.3em 0;font-family:var(--sans);font-size:.78rem;font-weight:500;letter-spacing:.14em;color:var(--silver);opacity:.55;transition:color .3s var(--ease),opacity .3s var(--ease)}
   .seg button:hover,.seg button:focus-visible{opacity:.9;outline:none}
   .seg button.is-on{color:var(--accent);opacity:1}
+  .set-row{flex-wrap:wrap}
+  .set-sep{height:1px;margin:.4rem 0;background:linear-gradient(90deg,transparent,rgba(var(--accent-rgb),.25),transparent)}
+  .set-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.76rem;letter-spacing:.08em;color:var(--accent);user-select:all}
+  .set-input{width:13.5rem;max-width:100%;background:transparent;border:none;border-bottom:1px solid rgba(var(--accent-rgb),.35);padding:.35em 0;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}
+  .set-input:focus{outline:none;border-bottom-color:var(--accent)}
+  .set-input::placeholder{color:var(--silver);opacity:.45}
+  .set-hint{font-size:.64rem;line-height:1.6;letter-spacing:.06em;color:var(--silver);opacity:.7;text-align:center}
+  .set-note{min-height:1.3em;font-size:.68rem;letter-spacing:.1em;color:var(--accent);text-align:center}
 
   /* ---------- NAVIGATION: icon rail (desktop) · tab bar (mobile) ---------- */
   .nav-item{position:relative;display:grid;place-items:center;width:40px;height:40px;background:none;border:none;border-radius:10px;cursor:pointer;padding:0;
@@ -483,6 +492,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   <div class="safety-overlay" id="safety">
     <div class="safety-card">
       Bu bir yansıma deneyimi. Profesyonel destek yerine geçmez. Zorlanıyorsan bir uzmana ya da güvendiğin birine ulaş.
+      <br><br>Archon ve Multivac sohbetlerin sana özel bir kodla 90 gün saklanır; Ayarlar'dan silebilirsin. Ayna iz bırakmaz.
       <span class="x" id="safetyClose">kapat</span>
     </div>
   </div>
@@ -501,6 +511,13 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     <div class="set-rows">
       <div class="set-row"><span class="set-label">tema</span><div class="seg"><button data-set-theme="dark">karanlık</button><button data-set-theme="light">aydınlık</button></div></div>
       <div class="set-row"><span class="set-label">vurgu</span><div class="seg"><button data-set-accent="gold">altın</button><button data-set-accent="silver">gümüş</button></div></div>
+      <div class="set-sep"></div>
+      <div class="set-row"><span class="set-label">senkron kodu</span><span class="set-code" id="syncCodeText">—</span></div>
+      <div class="set-row"><span></span><div class="seg"><button id="syncCopy">kopyala</button></div></div>
+      <div class="set-row"><input class="set-input" id="syncInput" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" maxlength="29" aria-label="Senkron kodu gir"><div class="seg"><button id="syncApply">yükle</button></div></div>
+      <div class="set-row"><span class="set-label">geçmiş</span><div class="seg"><button id="historyDelete">geçmişimi sil</button></div></div>
+      <p class="set-note" id="syncNote" aria-live="polite"></p>
+      <p class="set-hint">Archon ve Multivac sohbetlerin bu kodla sunucuda saklanır, son kullanımdan 90 gün sonra silinir. Kodu başka bir cihazda girersen sohbetlerin orada da açılır. Kodu kimseyle paylaşma.</p>
     </div>
   </section>
 
@@ -592,7 +609,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     // Karakter promptları sunucuda (api/chat.js); tarayıcı sadece hangi karakter olduğunu gönderir
     // sunucu en fazla 40 mesaj kabul eder; son kısmı gönder, kullanıcı mesajıyla başlasın
     const msgs=history.slice(-40);while(msgs.length&&msgs[0].role!=="user")msgs.shift();
-    const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({persona:p,messages:msgs})});
+    const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({persona:p,messages:msgs,code:p==="mirror"?undefined:syncCode(true)})});
     if(!r.ok){const e=new Error("HTTP "+r.status);e.status=r.status;throw e;}
     const d=await r.json();
     if(!d||!d.text)throw new Error("empty");
@@ -636,6 +653,27 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   // keep the tail of the conversation; the API needs it to start with a user turn
   function saveChat(p,hist){const h=hist.slice(-40);while(h.length&&h[0].role!=="user")h.shift();if(h.length)store(K_CHAT,{persona:p,api:h,ts:Date.now()});}
   function lastChat(){const c=load(K_CHAT);return c&&NAMES[c.persona]&&Array.isArray(c.api)&&c.api.length?c:null;}
+
+  /* ---- server history, keyed by a private sync code (Crockford base32, 20 chars ≈ 100 bits) ---- */
+  const K_SYNC="erebiel-sync-code",CODE_ABC="0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+  function genCode(){const b=crypto.getRandomValues(new Uint8Array(20));let s="";for(const x of b)s+=CODE_ABC[x&31];return s.match(/.{4}/g).join("-");}
+  function normCode(v){const s=String(v||"").toUpperCase().replace(/[^0-9A-Z]/g,"").replace(/O/g,"0").replace(/[IL]/g,"1");return /^[0-9A-HJKMNP-TV-Z]{20}$/.test(s)?s.match(/.{4}/g).join("-"):null;}
+  function syncCode(create){let c=load(K_SYNC);if(!normCode(c))c=null;if(!c&&create){c=genCode();store(K_SYNC,c);}return c;}
+  async function historyCall(code,action){
+    const r=await fetch("/api/history",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,action})});
+    if(!r.ok){const e=new Error("HTTP "+r.status);e.status=r.status;throw e;}
+    return r.json();
+  }
+  function newestOf(chats){let best=null;for(const p of Object.keys(NAMES)){const c=chats&&chats[p];if(c&&Array.isArray(c.api)&&c.api.length&&(!best||c.ts>best.ts))best={persona:p,api:c.api,ts:c.ts};}return best;}
+  // bring the newest server conversation into the local cache; returns it (or null)
+  async function pullHistory(code,replace){
+    const {chats}=await historyCall(code,"get");
+    const best=newestOf(chats),local=lastChat();
+    if(best&&(replace||!local||best.ts>local.ts))store(K_CHAT,best);
+    else if(replace&&!best){try{localStorage.removeItem(K_CHAT);}catch(e){}}
+    return best;
+  }
+  function onHome(){return chat.hidden&&threshold.style.display!=="none";}
   function ago(ts){const s=Math.max(0,(Date.now()-ts)/1000);if(s<60)return "az önce";const m=Math.floor(s/60);if(m<60)return m+" dakika önce";const h=Math.floor(m/60);if(h<24)return h+" saat önce";const d=Math.floor(h/24);return d===1?"dün":d+" gün önce";}
   function renderResume(){
     const c=lastChat();
@@ -660,6 +698,12 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   // wordmark → back to the full ceremony
   brandBtn.addEventListener("click",()=>{homeMode="hero";threshold.style.animation="none";void threshold.offsetWidth;threshold.style.animation="";showHome();});
   showHome();
+  // quietly sync with the server copy; a returning visitor (<24h) whose chat only lives on the server lands in compact mode
+  (async()=>{const code=syncCode(false);if(!code)return;const had=lastChat();
+    try{await pullHistory(code,false);}catch(e){return;}
+    const now=lastChat();if(!now||(had&&had.ts===now.ts))return;
+    if(lastVisit&&Date.now()-lastVisit<=DAY)homeMode="compact";
+    if(onHome())showHome();})();
 
   /* ---- CHAT ---- */
   function addBubble(role,text){const d=document.createElement("div");d.className="msg "+(role==="user"?"user":"bot");d.textContent=text;messages.appendChild(d);messages.scrollTop=messages.scrollHeight;return d;}
@@ -791,6 +835,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   function closePages(){[soonEl,settingsEl].forEach(p=>{if(p.hidden)return;p.classList.remove("show");setTimeout(()=>{if(!p.classList.contains("show"))p.hidden=true;},reduce?0:500);});setActive("home");}
   function openSoon(key){$("soonTitle").textContent=SOON_TITLES[key];$("soonGlyph").hidden=key!=="characters";openPage(soonEl);}
   function syncSettings(){
+    $("syncCodeText").textContent=syncCode(false)||"— (ilk sohbette oluşur)";
     const light=root.getAttribute("data-theme")==="light",silver=root.getAttribute("data-accent")==="silver";
     document.querySelectorAll("[data-set-theme]").forEach(b=>b.classList.toggle("is-on",(b.getAttribute("data-set-theme")==="light")===light));
     document.querySelectorAll("[data-set-accent]").forEach(b=>b.classList.toggle("is-on",(b.getAttribute("data-set-accent")==="silver")===silver));
@@ -812,6 +857,36 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   document.querySelectorAll("[data-set-accent]").forEach(b=>b.addEventListener("click",()=>setAccent(b.getAttribute("data-set-accent"))));
   $("charactersBtn").addEventListener("click",()=>{openSoon("characters");setActive("");});
   syncSettings();setActive("home");
+
+  /* ---- SETTINGS: sync code + history ---- */
+  const syncNote=$("syncNote");let noteTimer=null,deleteArmed=null;
+  function note(t){syncNote.textContent=t;clearTimeout(noteTimer);noteTimer=setTimeout(()=>{syncNote.textContent="";},5000);}
+  function afterHistoryChange(){if(!lastChat())homeMode="hero";syncSettings();}
+  $("syncCopy").addEventListener("click",async()=>{
+    const code=syncCode(false);if(!code){note("henüz kod yok — ilk sohbette oluşur");return;}
+    try{await navigator.clipboard.writeText(code);note("kod kopyalandı");}catch(e){note("kopyalanamadı — kodu seçip kopyala");}
+  });
+  async function applyCode(){
+    const code=normCode($("syncInput").value);
+    if(!code){note("kod geçersiz — 20 karakter olmalı");return;}
+    note("yükleniyor…");
+    try{
+      const best=await pullHistory(code,true);
+      store(K_SYNC,code);$("syncInput").value="";afterHistoryChange();
+      note(best?"geçmiş yüklendi · "+NAMES[best.persona]:"kod kaydedildi · bu kodla sohbet yok");
+    }catch(e){note(e.status===429?"çok fazla deneme — biraz bekle":"şu an yüklenemedi, sonra tekrar dene");}
+  }
+  $("syncApply").addEventListener("click",applyCode);
+  $("syncInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();applyCode();}});
+  $("historyDelete").addEventListener("click",async()=>{
+    const btn=$("historyDelete");
+    if(!deleteArmed){btn.textContent="emin misin? tekrar bas";deleteArmed=setTimeout(()=>{deleteArmed=null;btn.textContent="geçmişimi sil";},4000);return;}
+    clearTimeout(deleteArmed);deleteArmed=null;btn.textContent="geçmişimi sil";
+    const code=syncCode(false);
+    try{if(code)await historyCall(code,"delete");}catch(e){note("sunucudaki geçmiş silinemedi, sonra tekrar dene");return;}
+    try{localStorage.removeItem(K_CHAT);}catch(e){}
+    afterHistoryChange();note("geçmiş silindi");
+  });
 
   /* ---- SAFETY ---- */
   $("infoDot").addEventListener("click",()=>$("safety").classList.add("on"));
