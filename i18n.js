@@ -1,5 +1,5 @@
 // i18n.js — EREBIEL arayüz metinleri (İngilizce / Türkçe).
-// Dil seçimi: Ayarlar'da seçilen dil → yoksa tarayıcının birincil dili Türkçeyse Türkçe → yoksa İngilizce.
+// Dil seçimi: Ayarlar'da seçilen dil → tarayıcının tercih ettiği dillerden çevirisi olan ilki (tam etiket, sonra ana dil) → İngilizce.
 // HTML'de: data-i18n="anahtar" (metin), data-i18n-html="anahtar" (bizim yazdığımız biçimli metin),
 // data-i18n-attr="aria-label:anahtar;placeholder:anahtar" (öznitelikler). JS'te: i18n.t("anahtar", {n: 3}).
 (function () {
@@ -275,13 +275,29 @@
   const KEY = "erebiel-lang";
   const SUPPORTED = Object.keys(STRINGS);
 
+  // Closest available translation for a BCP 47 tag: exact tag ("pt-BR"), then its base language ("pt").
+  // Adding a language later only needs a new STRINGS entry.
+  function match(tag) {
+    if (typeof tag !== "string" || !tag) return null;
+    const lower = tag.toLowerCase();
+    const exact = SUPPORTED.find((l) => l.toLowerCase() === lower);
+    if (exact) return exact;
+    const base = lower.split("-")[0];
+    return SUPPORTED.find((l) => l.toLowerCase() === base || l.toLowerCase().split("-")[0] === base) || null;
+  }
+
+  // saved choice → the browser's preferred languages in order → English
   function detect() {
     try {
-      const saved = localStorage.getItem(KEY);
-      if (SUPPORTED.includes(saved)) return saved;
+      const saved = match(localStorage.getItem(KEY));
+      if (saved) return saved;
     } catch (e) {}
-    const primary = (navigator.languages && navigator.languages[0]) || navigator.language || "";
-    return /^tr\b/i.test(primary) ? "tr" : "en";
+    const prefs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]).filter(Boolean);
+    for (const tag of prefs) {
+      const m = match(tag);
+      if (m) return m;
+    }
+    return "en";
   }
 
   let current = detect();
@@ -316,5 +332,10 @@
     document.dispatchEvent(new CustomEvent("i18n:change", { detail: { lang } }));
   }
 
-  window.i18n = { t, apply, setLang, lang: () => current, supported: SUPPORTED };
+  // a language's name in its own language, for the language picker ("English", "Türkçe", …)
+  function nativeName(code) {
+    try { const n = new Intl.DisplayNames([code], { type: "language" }).of(code); return n.charAt(0).toLocaleUpperCase(code) + n.slice(1); } catch (e) { return code; }
+  }
+
+  window.i18n = { t, apply, setLang, lang: () => current, supported: SUPPORTED, match, nativeName };
 })();

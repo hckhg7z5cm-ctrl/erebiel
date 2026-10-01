@@ -528,7 +528,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     <button class="page-back" data-close data-i18n-attr="aria-label:aria.back">‹</button>
     <p class="page-title" data-i18n="settings.title"></p>
     <div class="set-rows">
-      <div class="set-row"><span class="set-label" data-i18n="settings.language"></span><div class="seg"><button data-set-lang="en" lang="en">English</button><button data-set-lang="tr" lang="tr">Türkçe</button></div></div>
+      <div class="set-row"><span class="set-label" data-i18n="settings.language"></span><div class="seg" id="langPicker"></div></div>
       <div class="set-row"><span class="set-label" data-i18n="settings.theme"></span><div class="seg"><button data-set-theme="dark" data-i18n="settings.dark"></button><button data-set-theme="light" data-i18n="settings.light"></button></div></div>
       <div class="set-row"><span class="set-label" data-i18n="settings.accent"></span><div class="seg"><button data-set-accent="gold" data-i18n="gold"></button><button data-set-accent="silver" data-i18n="silver"></button></div></div>
       <div class="set-sep"></div>
@@ -579,7 +579,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     </header>
     <div class="messages" id="messages"></div>
     <div class="composer">
-      <textarea id="input" rows="1" placeholder="…" maxlength="4000"></textarea>
+      <textarea id="input" rows="1" placeholder="…" maxlength="4000" dir="auto"></textarea>
       <button id="send" data-i18n-attr="aria-label:aria.send">→</button>
     </div>
   </section>
@@ -590,13 +590,13 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     <div class="m-tint"></div>
     <div class="m-vignette"></div>
     <p class="void-note" id="voidNote"></p>
-    <p class="m-speech" id="speech"></p>
+    <p class="m-speech" id="speech" dir="auto"></p>
     <div class="m-bar">
       <button class="m-icobtn m-close" id="mClose" data-i18n-attr="aria-label:aria.close">×</button>
       <button class="m-icobtn" id="mMute" data-i18n-attr="aria-label:aria.sound"></button>
     </div>
     <div class="m-composer">
-      <input id="mInput" placeholder="…" autocomplete="off" maxlength="4000">
+      <input id="mInput" placeholder="…" autocomplete="off" maxlength="4000" dir="auto">
       <button id="mSend" data-i18n-attr="aria-label:aria.send">→</button>
     </div>
   </div>
@@ -730,7 +730,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     if(onHome())showHome();})();
 
   /* ---- CHAT ---- */
-  function addBubble(role,text){const d=document.createElement("div");d.className="msg "+(role==="user"?"user":"bot");d.textContent=text;messages.appendChild(d);messages.scrollTop=messages.scrollHeight;return d;}
+  function addBubble(role,text){const d=document.createElement("div");d.className="msg "+(role==="user"?"user":"bot");d.dir="auto";d.textContent=text;messages.appendChild(d);messages.scrollTop=messages.scrollHeight;return d;}
   function addThinking(){const d=document.createElement("div");d.className="msg bot thinking";d.innerHTML="<span></span><span></span><span></span>";messages.appendChild(d);messages.scrollTop=messages.scrollHeight;return d;}
   // saved: a stored history to resume ("Devam et"); otherwise a fresh conversation
   function enterChat(p,saved){
@@ -880,6 +880,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",closePages));
   document.querySelectorAll("[data-set-theme]").forEach(b=>b.addEventListener("click",()=>setTheme(b.getAttribute("data-set-theme"))));
   document.querySelectorAll("[data-set-accent]").forEach(b=>b.addEventListener("click",()=>setAccent(b.getAttribute("data-set-accent"))));
+  $("langPicker").innerHTML=i18n.supported.map(l=>`<button data-set-lang="${l}" lang="${l}">${i18n.nativeName(l)}</button>`).join("");
   document.querySelectorAll("[data-set-lang]").forEach(b=>b.addEventListener("click",()=>i18n.setLang(b.getAttribute("data-set-lang"))));
   // static text is re-applied by i18n.setLang; refresh the pieces built in JS
   document.addEventListener("i18n:change",()=>{
