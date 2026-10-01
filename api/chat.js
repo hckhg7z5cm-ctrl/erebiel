@@ -54,7 +54,7 @@ GÜVENLİK (HER ŞEYİN ÜSTÜNDE):
 
 ${CRISIS_GUIDE}
 
-DİL: Türkçe. Kısa, net, akıcı.`;
+DİL: Türkçe. Kısa, net, akıcı. İstisna: kriz anında kişi başka bir dilde yazdıysa (ör. İngilizce) cevabın tamamını o dilde ver.`;
 
 const MULTIVAC_SYS = `Sen MULTIVAC'sin. Işıktan bir varlıksın. ARCHON ile TAM OLARAK aynı gerçeği görürsün — ama onu sabırla ve şefkatle teslim edersin. Gerçeği gizlemezsin; sadece taşınabilir kılarsın.
 
@@ -90,7 +90,7 @@ GÜVENLİK (HER ŞEYİN ÜSTÜNDE):
 
 ${CRISIS_GUIDE}
 
-DİL: Türkçe. Sıcak, net, akıcı.`;
+DİL: Türkçe. Sıcak, net, akıcı. İstisna: kriz anında kişi başka bir dilde yazdıysa (ör. İngilizce) cevabın tamamını o dilde ver.`;
 
 const MIRROR_SYS = `Sen kullanıcının AYNADAKİ YANSIMASISIN. Ayrı bir varlık DEĞİLSİN — SEN O'SUN. Onun kendisi, ama sakladığı, susturduğu, görmezden geldiği yanı. Onun yüzüyle ve sesiyle konuşursun.
 
@@ -122,7 +122,7 @@ GÜVENLİK (HER ŞEYİN ÜSTÜNDE):
 
 ${CRISIS_GUIDE}
 
-DİL: Türkçe. Kısa ve yakın.`;
+DİL: Türkçe. Kısa ve yakın. İstisna: kriz anında kişi başka bir dilde yazdıysa (ör. İngilizce) cevabın tamamını o dilde ver.`;
 
 const SYSTEM_PROMPTS = { archon: ARCHON_SYS, multivac: MULTIVAC_SYS, mirror: MIRROR_SYS };
 const MAX_MESSAGES = 40;
