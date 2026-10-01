@@ -23,6 +23,7 @@
   // Kayıtlı temayı ilk boyamadan önce uygula (yanıp sönmeyi önler)
   try{if(localStorage.getItem("archon-theme")==="light"){document.documentElement.setAttribute("data-theme","light");document.querySelector('meta[name="color-scheme"]').content="light";document.querySelector('meta[name="theme-color"]').content="#faf8f5";}if(localStorage.getItem("erebiel-accent")==="silver")document.documentElement.setAttribute("data-accent","silver");}catch(e){}
 </script>
+<script src="i18n.js"></script>
 <style>
   :root{
     --void:#0a0806;--spectral:#7bd3d6;--stone:#c8c9cc;--whisper:#8d8a85;
@@ -298,6 +299,23 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   .safety-card{max-width:34ch;text-align:center;font-weight:400;letter-spacing:.04em;line-height:1.9;font-size:.9rem;color:var(--silver)}
   .safety-card .x{margin-top:1.6em;display:inline-block;font-size:.72rem;font-weight:500;letter-spacing:.3em;text-transform:lowercase;color:var(--accent);opacity:.8;cursor:pointer}
   .safety-card .x:hover{opacity:1}
+  .safety-links{display:flex;justify-content:center;gap:2.2em}
+  .safety-links .x{background:none;border:none;padding:0;font-family:var(--sans)}
+  /* privacy notice: the card widens, the text scrolls inside it */
+  .safety-card.wide{max-width:min(40rem,100%)}
+  /* tall content must never be clipped: the overlay scrolls, the card centres with auto margins (safe centring) */
+  .safety-overlay{align-items:flex-start;justify-content:flex-start;overflow-y:auto;padding:max(6vh,1.2rem) max(6vw,1rem)}
+  .safety-card{margin:auto}
+  .safety-card.wide .privacy{max-height:none;overflow:visible}
+  .privacy{margin-top:1.4em;max-height:min(58vh,34rem);overflow-y:auto;padding:0 .4em 0 0;text-align:left;font-size:.8rem;line-height:1.75;letter-spacing:.02em}
+  .privacy[hidden]{display:none!important}
+  .privacy h3{margin:1.5em 0 .35em;font-family:"Cinzel",serif;font-weight:600;font-size:.72rem;letter-spacing:.2em;color:var(--accent)}
+  .privacy h3:first-child{margin-top:0}
+  .privacy p,.privacy li{color:var(--silver)}
+  .privacy ul{margin:.3em 0 0 1.1em}
+  .privacy li{margin:.2em 0}
+  .privacy .muted{opacity:.7;font-size:.72rem}
+  .privacy .ph{color:var(--accent);font-weight:600}
 
 
   /* ---------- PAGES: characters · "yakında" placeholders · settings ---------- */
@@ -461,7 +479,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
         <span class="glyph"><span class="aura aura-archon" aria-hidden="true"></span><span class="form form-archon"></span></span>
         <span class="sym-label">archon</span>
       </button>
-      <button class="sym sym-mirror" id="mirrorBtn" aria-label="Ayna">
+      <button class="sym sym-mirror" id="mirrorBtn" data-i18n-attr="aria-label:aria.mirror">
         <span class="glyph"><span class="aura aura-mirror" aria-hidden="true"></span><span class="form form-mirror"></span></span>
         <span class="sym-label">mirror</span>
       </button>
@@ -469,98 +487,100 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
         <span class="glyph"><span class="aura aura-multivac" aria-hidden="true"></span><span class="form form-multivac"></span></span>
         <span class="sym-label">multivac</span>
       </button>
-      <button class="sym sym-characters" id="charactersBtn" aria-label="Characters">
+      <button class="sym sym-characters" id="charactersBtn" data-i18n-attr="aria-label:aria.characters">
         <span class="glyph"><span class="aura aura-characters" aria-hidden="true"></span><span class="form form-characters"><i class="ch-orb o1"></i><i class="ch-orb o2"></i><i class="ch-orb o3"></i><i class="ch-orb o4"></i><i class="ch-orb o5"></i><i class="ch-orb o6"></i><i class="ch-orb o7"></i><i class="ch-orb o8"></i></span></span>
         <span class="sym-label">characters</span>
       </button>
     </div>
     <div class="invite" id="invite" hidden>
-      <p class="invite-text">bir varlık seç</p>
+      <p class="invite-text" data-i18n="invite"></p>
     </div>
   </section>
 
-  <button class="brand" id="brand" aria-label="Ana ekran"><span class="brand-word">EREBIEL</span><span class="slogan" lang="en">your mind • your space • your ai</span></button>
+  <button class="brand" id="brand" data-i18n-attr="aria-label:aria.home"><span class="brand-word">EREBIEL</span><span class="slogan" lang="en">your mind • your space • your ai</span></button>
   <section id="resume" hidden><div class="res-card" id="resCard"></div></section>
 
-  <button class="theme-toggle accent-toggle" id="accentToggle" aria-label="Vurgu rengi: altın" aria-pressed="false"><span class="chip" aria-hidden="true"></span></button>
-  <button class="theme-toggle" id="themeToggle" aria-label="Tema" aria-pressed="false">
+  <button class="theme-toggle accent-toggle" id="accentToggle" aria-pressed="false"><span class="chip" aria-hidden="true"></span></button>
+  <button class="theme-toggle" id="themeToggle" data-i18n-attr="aria-label:aria.theme" aria-pressed="false">
     <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.55 1.55M17.15 17.15l1.55 1.55M5.3 18.7l1.55-1.55M17.15 6.85l1.55-1.55"/></svg>
     <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M20 14.6A8 8 0 019.4 4a8 8 0 1010.6 10.6z"/></svg>
   </button>
 
-  <button class="info-dot" id="infoDot" aria-label="Bilgi"></button>
+  <button class="info-dot" id="infoDot" data-i18n-attr="aria-label:aria.info"></button>
   <div class="safety-overlay" id="safety">
     <div class="safety-card">
-      Bu bir yansıma deneyimi. Profesyonel destek yerine geçmez. Zorlanıyorsan bir uzmana ya da güvendiğin birine ulaş.
-      <br><br>Archon ve Multivac sohbetlerin sana özel bir kodla 90 gün saklanır; Ayarlar'dan silebilirsin. Ayna iz bırakmaz.
-      <span class="x" id="safetyClose">kapat</span>
+      <span data-i18n="safety.line1"></span>
+      <br><br><span data-i18n="safety.line2"></span>
+      <div class="safety-links"><button class="x" id="privacyToggle" aria-expanded="false" aria-controls="privacy" data-i18n="safety.privacy"></button><button class="x" id="safetyClose" data-i18n="safety.close"></button></div>
+      <div class="privacy" id="privacy" hidden data-i18n-html="privacy.html"></div>
     </div>
   </div>
 
 
   <!-- ================= PAGES ================= -->
   <section class="page" id="soon" hidden>
-    <button class="page-back" data-close aria-label="Geri">‹</button>
+    <button class="page-back" data-close data-i18n-attr="aria-label:aria.back">‹</button>
     <div class="sym-characters" id="soonGlyph"><span class="glyph"><span class="form form-characters"><i class="ch-orb o1"></i><i class="ch-orb o2"></i><i class="ch-orb o3"></i><i class="ch-orb o4"></i><i class="ch-orb o5"></i><i class="ch-orb o6"></i><i class="ch-orb o7"></i><i class="ch-orb o8"></i></span></span></div>
-    <p class="page-title" id="soonTitle" lang="en"></p>
-    <p class="page-sub">yakında</p>
+    <p class="page-title" id="soonTitle"></p>
+    <p class="page-sub" data-i18n="soon"></p>
   </section>
   <section class="page" id="settings" hidden>
-    <button class="page-back" data-close aria-label="Geri">‹</button>
-    <p class="page-title" lang="en">settings</p>
+    <button class="page-back" data-close data-i18n-attr="aria-label:aria.back">‹</button>
+    <p class="page-title" data-i18n="settings.title"></p>
     <div class="set-rows">
-      <div class="set-row"><span class="set-label">tema</span><div class="seg"><button data-set-theme="dark">karanlık</button><button data-set-theme="light">aydınlık</button></div></div>
-      <div class="set-row"><span class="set-label">vurgu</span><div class="seg"><button data-set-accent="gold">altın</button><button data-set-accent="silver">gümüş</button></div></div>
+      <div class="set-row"><span class="set-label" data-i18n="settings.language"></span><div class="seg"><button data-set-lang="en" lang="en">English</button><button data-set-lang="tr" lang="tr">Türkçe</button></div></div>
+      <div class="set-row"><span class="set-label" data-i18n="settings.theme"></span><div class="seg"><button data-set-theme="dark" data-i18n="settings.dark"></button><button data-set-theme="light" data-i18n="settings.light"></button></div></div>
+      <div class="set-row"><span class="set-label" data-i18n="settings.accent"></span><div class="seg"><button data-set-accent="gold" data-i18n="gold"></button><button data-set-accent="silver" data-i18n="silver"></button></div></div>
       <div class="set-sep"></div>
-      <div class="set-row"><span class="set-label">senkron kodu</span><span class="set-code" id="syncCodeText">—</span></div>
-      <div class="set-row"><span></span><div class="seg"><button id="syncCopy">kopyala</button></div></div>
-      <div class="set-row"><input class="set-input" id="syncInput" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" maxlength="29" aria-label="Senkron kodu gir"><div class="seg"><button id="syncApply">yükle</button></div></div>
-      <div class="set-row"><span class="set-label">geçmiş</span><div class="seg"><button id="historyDelete">geçmişimi sil</button></div></div>
+      <div class="set-row"><span class="set-label" data-i18n="settings.syncCode"></span><span class="set-code" id="syncCodeText">—</span></div>
+      <div class="set-row"><span></span><div class="seg"><button id="syncCopy" data-i18n="settings.copy"></button></div></div>
+      <div class="set-row"><input class="set-input" id="syncInput" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" maxlength="29" data-i18n-attr="aria-label:aria.syncInput"><div class="seg"><button id="syncApply" data-i18n="settings.load"></button></div></div>
+      <div class="set-row"><span class="set-label" data-i18n="settings.history"></span><div class="seg"><button id="historyDelete" data-i18n="settings.delete"></button></div></div>
       <p class="set-note" id="syncNote" aria-live="polite"></p>
-      <p class="set-hint">Archon ve Multivac sohbetlerin bu kodla sunucuda saklanır, son kullanımdan 90 gün sonra silinir. Kodu başka bir cihazda girersen sohbetlerin orada da açılır. Kodu kimseyle paylaşma.</p>
+      <p class="set-hint" data-i18n="settings.hint"></p>
     </div>
   </section>
 
   <!-- ================= NAVIGATION ================= -->
-  <nav class="rail" aria-label="Menü">
+  <nav class="rail" data-i18n-attr="aria-label:aria.menu">
     <div class="rail-main">
-      <button class="nav-item" data-nav="home" data-icon="home" data-tip="Home" aria-label="Home"></button>
-      <button class="nav-item" data-nav="premium" data-icon="crown" data-tip="Premium" aria-label="Premium"></button>
-      <button class="nav-item" data-nav="create" data-icon="userPlus" data-tip="Create Character" aria-label="Create Character"></button>
-      <button class="nav-item" data-nav="chat" data-icon="message" data-tip="Chat" aria-label="Chat"></button>
-      <button class="nav-item" data-nav="mix" data-icon="shuffle" data-tip="Mix" aria-label="Mix"></button>
-      <button class="nav-item" data-nav="settings" data-icon="settings" data-tip="Settings" aria-label="Settings"></button>
+      <button class="nav-item" data-nav="home" data-icon="home" data-i18n-attr="data-tip:nav.home;aria-label:nav.home"></button>
+      <button class="nav-item" data-nav="premium" data-icon="crown" data-i18n-attr="data-tip:nav.premium;aria-label:nav.premium"></button>
+      <button class="nav-item" data-nav="create" data-icon="userPlus" data-i18n-attr="data-tip:nav.create;aria-label:nav.create"></button>
+      <button class="nav-item" data-nav="chat" data-icon="message" data-i18n-attr="data-tip:nav.chat;aria-label:nav.chat"></button>
+      <button class="nav-item" data-nav="mix" data-icon="shuffle" data-i18n-attr="data-tip:nav.mix;aria-label:nav.mix"></button>
+      <button class="nav-item" data-nav="settings" data-icon="settings" data-i18n-attr="data-tip:nav.settings;aria-label:nav.settings"></button>
     </div>
-    <button class="nav-item nav-signin" data-nav="signin" data-icon="login" data-tip="Sign In" aria-label="Sign In"></button>
+    <button class="nav-item nav-signin" data-nav="signin" data-icon="login" data-i18n-attr="data-tip:nav.signin;aria-label:nav.signin"></button>
   </nav>
-  <nav class="tabbar" aria-label="Menü">
-    <button class="nav-item" data-nav="home" data-icon="home" aria-label="Home"></button>
-    <button class="nav-item" data-nav="chat" data-icon="message" aria-label="Chat"></button>
-    <button class="nav-item" data-nav="mix" data-icon="shuffle" aria-label="Mix"></button>
-    <button class="nav-item" data-nav="more" data-icon="dots" aria-label="More" aria-expanded="false"></button>
+  <nav class="tabbar" data-i18n-attr="aria-label:aria.menu">
+    <button class="nav-item" data-nav="home" data-icon="home" data-i18n-attr="aria-label:nav.home"></button>
+    <button class="nav-item" data-nav="chat" data-icon="message" data-i18n-attr="aria-label:nav.chat"></button>
+    <button class="nav-item" data-nav="mix" data-icon="shuffle" data-i18n-attr="aria-label:nav.mix"></button>
+    <button class="nav-item" data-nav="more" data-icon="dots" data-i18n-attr="aria-label:aria.more" aria-expanded="false"></button>
   </nav>
   <div class="more-sheet" id="moreSheet" hidden>
-    <button class="sheet-item" data-nav="premium" data-icon="crown"><span>Premium</span></button>
-    <button class="sheet-item" data-nav="create" data-icon="userPlus"><span>Create Character</span></button>
-    <button class="sheet-item" data-nav="settings" data-icon="settings"><span>Settings</span></button>
-    <button class="sheet-item" data-nav="signin" data-icon="login"><span>Sign In</span></button>
+    <button class="sheet-item" data-nav="premium" data-icon="crown"><span data-i18n="nav.premium"></span></button>
+    <button class="sheet-item" data-nav="create" data-icon="userPlus"><span data-i18n="nav.create"></span></button>
+    <button class="sheet-item" data-nav="settings" data-icon="settings"><span data-i18n="nav.settings"></span></button>
+    <button class="sheet-item" data-nav="signin" data-icon="login"><span data-i18n="nav.signin"></span></button>
   </div>
 
   <!-- ================= CHAT ================= -->
   <section id="chat" data-persona="archon" hidden>
     <div class="chat-bg"></div>
     <header class="chat-head">
-      <button class="icobtn back-arrow" id="back" aria-label="Geri">‹</button>
+      <button class="icobtn back-arrow" id="back" data-i18n-attr="aria-label:aria.back">‹</button>
       <div class="who-glyph">
         <span class="glyph-arc"><i class="mini-beam"></i></span>
         <span class="glyph-mv"><i class="mini-cloud"></i></span>
       </div>
-      <button class="icobtn" id="mute" aria-label="Ses"></button>
+      <button class="icobtn" id="mute" data-i18n-attr="aria-label:aria.sound"></button>
     </header>
     <div class="messages" id="messages"></div>
     <div class="composer">
       <textarea id="input" rows="1" placeholder="…" maxlength="4000"></textarea>
-      <button id="send" aria-label="Gönder">→</button>
+      <button id="send" data-i18n-attr="aria-label:aria.send">→</button>
     </div>
   </section>
 
@@ -572,31 +592,26 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     <p class="void-note" id="voidNote"></p>
     <p class="m-speech" id="speech"></p>
     <div class="m-bar">
-      <button class="m-icobtn m-close" id="mClose" aria-label="Kapat">×</button>
-      <button class="m-icobtn" id="mMute" aria-label="Ses"></button>
+      <button class="m-icobtn m-close" id="mClose" data-i18n-attr="aria-label:aria.close">×</button>
+      <button class="m-icobtn" id="mMute" data-i18n-attr="aria-label:aria.sound"></button>
     </div>
     <div class="m-composer">
       <input id="mInput" placeholder="…" autocomplete="off" maxlength="4000">
-      <button id="mSend" aria-label="Gönder">→</button>
+      <button id="mSend" data-i18n-attr="aria-label:aria.send">→</button>
     </div>
   </div>
 
 <script>
 (function(){
   /* ============ BRAINS ============ */
+  const t=i18n.t;
+  i18n.apply();
 
 
 
-  const GREET={archon:"Merhaba, Archon'a hoş geldin. Sana nasıl yardımcı olabilirim?",multivac:"Merhaba, Multivac'a hoş geldin. Sana nasıl yardımcı olabilirim?"};
-  const MIRROR_GREET="Merhaba, Ayna'ya hoş geldin.";
-  const MIRROR_FALLBACK=[
-    "Herkese iyi olduğumu söylüyorum. Değilim.",
-    "Kendime anlattığım hikâyeye artık ben de inanmıyorum.",
-    "Değişeceğimi söyleyip duruyorum. Ama başlamıyorum.",
-    "Yorgun değilim. Taşıdığım şeyi bırakmaktan korkuyorum.",
-    "En çok, kimsenin beni gerçekten görmemesinden korkuyorum.",
-    "Ondan kaçabilirim. Kendimden kaçamam."
-  ];
+  // greetings and the Mirror's offline lines come from i18n.js (current UI language)
+  const greet=p=>t("greet."+p);
+  const mirrorFallback=()=>t("mirror.fallback");
 
   const $=id=>document.getElementById(id);
   const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -620,14 +635,22 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   const synth=window.speechSynthesis;let voices=[];
   function loadVoices(){try{voices=synth?synth.getVoices():[];}catch(e){voices=[];}}
   if(synth){loadVoices();synth.addEventListener&&synth.addEventListener("voiceschanged",loadVoices);}
-  function pickVoice(){if(!voices.length)loadVoices();return voices.find(v=>/^tr\b|tr-|_tr/i.test(v.lang))||voices.find(v=>/en/i.test(v.lang))||voices[0]||null;}
+  // characters answer in the user's language, so choose the voice from the text itself
+  function guessLang(text){
+    if(/[ğışİĞŞ]/.test(text))return "tr";
+    if(/[äßÄ]/.test(text))return "de";
+    if(/[\u3040-\u30ff\u4e00-\u9faf]/.test(text))return "ja";
+    if(/[çöüÇÖÜ]/.test(text)&&i18n.lang()==="tr")return "tr";
+    return "en";
+  }
+  function pickVoice(lang){if(!voices.length)loadVoices();const re=new RegExp("^"+lang+"\\b|^"+lang+"[-_]","i");return voices.find(v=>re.test(v.lang))||voices.find(v=>/^en/i.test(v.lang))||voices[0]||null;}
   // Web Speech API SSML desteklemiyor; Türkçe ses özel isimleri harf harf okumasın diye
   // İngilizce okunuşlarını Türkçe yazımla veriyoruz (yalnızca seslendirilen metinde, ekrandaki yazı aynı kalır)
   const SAY_AS=[[/\barchon\b/gi,"Arkon"],[/\bmultivac\b/gi,"Maltivek"]];
   function speakable(text,lang){return /^tr/i.test(lang)?SAY_AS.reduce((t,[re,s])=>t.replace(re,s),text):text;}
   function speak(text,mode){
     if(muted||!synth)return;try{synth.cancel();}catch(e){}
-    const v=pickVoice(),lang=(v&&v.lang)||"tr-TR";
+    const want=guessLang(text),v=pickVoice(want),lang=(v&&v.lang)||want;
     const u=new SpeechSynthesisUtterance(mode==="archon"||mode==="multivac"?speakable(text,lang):text);if(v)u.voice=v;u.lang=lang;
     u.pitch=mode==="archon"?0.9:(mode==="multivac"?1.08:1.0);u.rate=mode==="archon"?0.92:0.95;
     u.onstart=()=>document.body.classList.add("speaking");u.onend=()=>document.body.classList.remove("speaking");
@@ -674,13 +697,14 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     return best;
   }
   function onHome(){return chat.hidden&&threshold.style.display!=="none";}
-  function ago(ts){const s=Math.max(0,(Date.now()-ts)/1000);if(s<60)return "az önce";const m=Math.floor(s/60);if(m<60)return m+" dakika önce";const h=Math.floor(m/60);if(h<24)return h+" saat önce";const d=Math.floor(h/24);return d===1?"dün":d+" gün önce";}
+  function ago(ts){const s=Math.max(0,(Date.now()-ts)/1000);if(s<60)return t("ago.now");const m=Math.floor(s/60);if(m<60)return t("ago.min",{n:m});const h=Math.floor(m/60);if(h<24)return h===1?t("ago.hour1"):t("ago.hours",{n:h});const d=Math.floor(h/24);return d===1?t("ago.yesterday"):t("ago.days",{n:d});}
   function renderResume(){
     const c=lastChat();
     if(c){
       const lastUser=[...c.api].reverse().find(m=>m.role==="user");
       resCard.setAttribute("data-persona",c.persona);
-      resCard.innerHTML='<p class="res-eyebrow">Kaldığın yerden</p><div class="res-head"><span class="res-av"></span><div class="res-meta"><span class="res-name" lang="en"></span><span class="res-time"></span></div></div><p class="res-snippet"></p><button class="res-go">Devam et <span aria-hidden="true">→</span></button>';
+      resCard.innerHTML='<p class="res-eyebrow" data-i18n="resume.eyebrow"></p><div class="res-head"><span class="res-av"></span><div class="res-meta"><span class="res-name" lang="en"></span><span class="res-time"></span></div></div><p class="res-snippet"></p><button class="res-go"><span data-i18n="resume.continue"></span> <span aria-hidden="true">→</span></button>';
+      i18n.apply(resCard);
       resCard.querySelector(".res-name").textContent=NAMES[c.persona];
       resCard.querySelector(".res-time").textContent=ago(c.ts);
       resCard.querySelector(".res-snippet").textContent="“"+(lastUser?lastUser.content:"").replace(/\s+/g," ").trim()+"”";
@@ -711,10 +735,10 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   // saved: a stored history to resume ("Devam et"); otherwise a fresh conversation
   function enterChat(p,saved){
     persona=p;api=saved?saved.slice():[];busy=false;chat.setAttribute("data-persona",p);input.value="";messages.innerHTML="";
-    addBubble("bot",GREET[p]);
+    addBubble("bot",greet(p));
     if(saved)saved.forEach(m=>addBubble(m.role,m.content));
     threshold.style.display="none";resumeEl.hidden=true;inviteEl.hidden=true;brandBtn.hidden=true;chat.hidden=false;requestAnimationFrame(()=>chat.classList.add("show"));
-    setTimeout(()=>input.focus(),80);if(!saved)speak(GREET[p],p);
+    setTimeout(()=>input.focus(),80);if(!saved)speak(greet(p),p);
   }
   function backToGate(){stopSpeak();chat.classList.remove("show");setTimeout(()=>{chat.hidden=true;showHome();},reduce?0:400);persona=null;api=[];messages.innerHTML="";}
   async function send(){
@@ -723,7 +747,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     stopSpeak();input.value="";input.style.height="2.7em";addBubble("user",text);hist.push({role:"user",content:text});saveChat(p,hist);
     busy=true;sendBtn.disabled=true;const think=addThinking();
     try{const reply=await ask(p,hist);think.remove();hist.push({role:"assistant",content:reply});saveChat(p,hist);if(api===hist){addBubble("bot",reply);speak(reply,p);}}
-    catch(e){think.remove();addBubble("bot",e.status===429?(persona==="archon"?"Yavaşla. Biraz bekle, sonra devam ederiz.":"Biraz soluklanalım. Birazdan tekrar yaz, buradayım."):(persona==="archon"?"Bağlantı koptu. Karanlık her zaman konuşmaz. Tekrar dene.":"Şu an bağlantı kurulamadı. Bir an bekle, sonra tekrar dene."));console.error(e);}
+    catch(e){think.remove();addBubble("bot",t((e.status===429?"err.rate.":"err.net.")+(persona==="archon"?"archon":"multivac")));console.error(e);}
     finally{busy=false;sendBtn.disabled=false;input.focus();}
   }
 
@@ -741,11 +765,11 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
 
   async function fbNext(){
     if(!mirror.classList.contains("open")||!mFallback)return;
-    const line=MIRROR_FALLBACK[mFbOrder[mFbIdx%mFbOrder.length]];mFbIdx++;
+    const lines=mirrorFallback(),line=lines[mFbOrder[mFbIdx%mFbOrder.length]%lines.length];mFbIdx++;
     await mShow(line);
     mFbTimer=setTimeout(()=>{if(mirror.classList.contains("open")&&mFallback)fbNext();},reduce?800:4400);
   }
-  function startFallback(){mFallback=true;mFbOrder=shuffle([...Array(MIRROR_FALLBACK.length).keys()]);mFbIdx=0;fbNext();}
+  function startFallback(){mFallback=true;mFbOrder=shuffle([...Array(mirrorFallback().length).keys()]);mFbIdx=0;fbNext();}
 
   async function openMirror(){
     const b=$("mirrorBtn").querySelector(".glyph").getBoundingClientRect();
@@ -757,19 +781,19 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
       stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});
       cam.srcObject=stream;cam.style.opacity=1;voidNote.classList.remove("show");
     }catch(e){
-      cam.style.opacity=0;voidNote.textContent="Ayna karanlıkta — kamera erişimi engellenmiş olabilir. Güvenli (https) bir sitede yansıman belirir.";voidNote.classList.add("show");
+      cam.style.opacity=0;voidNote.textContent=t("mirror.dark");voidNote.classList.add("show");
     }
     requestAnimationFrame(()=>mirror.classList.add("open"));
     mApi=[];mFallback=false;mBusy=true;clearTimeout(mFbTimer);clearTimeout(mGreetTimer);mirror.classList.remove("clear");cam.classList.remove("pulse");
     setTimeout(()=>input&&null,0);
     // sabit giriş cümlesi; sonra yazı yavaşça kaybolur ve geriye yalnızca yansıma kalır
-    try{await mShow(MIRROR_GREET);}
+    try{await mShow(greet("mirror"));}
     finally{mBusy=false;}
     mGreetTimer=setTimeout(()=>{if(mirror.classList.contains("open")){fadeSpeech();revealCam();}},reduce?800:2600);
   }
   async function mSend(){
     const t=mInput.value.trim();if(!t||mBusy)return;mInput.value="";clearTimeout(mGreetTimer);revealCam();
-    if(mFallback){const line=MIRROR_FALLBACK[Math.floor(Math.random()*MIRROR_FALLBACK.length)];await mShow(line);return;}
+    if(mFallback){const lines=mirrorFallback(),line=lines[Math.floor(Math.random()*lines.length)];await mShow(line);return;}
     mApi.push({role:"user",content:t});mBusy=true;mWaiting();
     try{const line=await ask("mirror",mApi);mApi.push({role:"assistant",content:line});await mShow(line);}
     catch(e){startFallback();}
@@ -800,7 +824,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   function applyAccent(a){
     const silver=a==="silver";
     if(silver)root.setAttribute("data-accent","silver");else root.removeAttribute("data-accent");
-    accentBtn.setAttribute("aria-pressed",String(silver));accentBtn.setAttribute("aria-label","Vurgu rengi: "+(silver?"gümüş":"altın"));
+    accentBtn.setAttribute("aria-pressed",String(silver));accentBtn.setAttribute("aria-label",t("aria.accent",{c:t(silver?"silver":"gold")}));
   }
   applyAccent(root.getAttribute("data-accent"));
   function setAccent(a){applyAccent(a);try{localStorage.setItem("erebiel-accent",a);}catch(e){}syncSettings();}
@@ -822,7 +846,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   document.querySelectorAll("[data-icon]").forEach(el=>el.insertAdjacentHTML("afterbegin",'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+ICONS[el.getAttribute("data-icon")]+'</svg>'));
 
   const soonEl=$("soon"),settingsEl=$("settings"),moreSheet=$("moreSheet"),moreBtn=document.querySelector('.tabbar [data-nav="more"]');
-  const SOON_TITLES={premium:"premium",create:"create character",mix:"mix",signin:"sign in",characters:"characters"};
+  let soonKey=null;
   const IN_MORE=["premium","create","settings","signin"];
   function setActive(k){
     document.querySelectorAll("[data-nav]").forEach(el=>{const n=el.getAttribute("data-nav");el.classList.toggle("is-active",n===k||(n==="more"&&IN_MORE.includes(k)));});
@@ -833,9 +857,10 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   }
   function openPageAnyOpen(){return !soonEl.hidden||!settingsEl.hidden;}
   function closePages(){[soonEl,settingsEl].forEach(p=>{if(p.hidden)return;p.classList.remove("show");setTimeout(()=>{if(!p.classList.contains("show"))p.hidden=true;},reduce?0:500);});setActive("home");}
-  function openSoon(key){$("soonTitle").textContent=SOON_TITLES[key];$("soonGlyph").hidden=key!=="characters";openPage(soonEl);}
+  function openSoon(key){soonKey=key;$("soonTitle").textContent=t("page."+key);$("soonGlyph").hidden=key!=="characters";openPage(soonEl);}
   function syncSettings(){
-    $("syncCodeText").textContent=syncCode(false)||"— (ilk sohbette oluşur)";
+    $("syncCodeText").textContent=syncCode(false)||t("settings.noCode");
+    document.querySelectorAll("[data-set-lang]").forEach(b=>b.classList.toggle("is-on",b.getAttribute("data-set-lang")===i18n.lang()));
     const light=root.getAttribute("data-theme")==="light",silver=root.getAttribute("data-accent")==="silver";
     document.querySelectorAll("[data-set-theme]").forEach(b=>b.classList.toggle("is-on",(b.getAttribute("data-set-theme")==="light")===light));
     document.querySelectorAll("[data-set-accent]").forEach(b=>b.classList.toggle("is-on",(b.getAttribute("data-set-accent")==="silver")===silver));
@@ -855,6 +880,14 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",closePages));
   document.querySelectorAll("[data-set-theme]").forEach(b=>b.addEventListener("click",()=>setTheme(b.getAttribute("data-set-theme"))));
   document.querySelectorAll("[data-set-accent]").forEach(b=>b.addEventListener("click",()=>setAccent(b.getAttribute("data-set-accent"))));
+  document.querySelectorAll("[data-set-lang]").forEach(b=>b.addEventListener("click",()=>i18n.setLang(b.getAttribute("data-set-lang"))));
+  // static text is re-applied by i18n.setLang; refresh the pieces built in JS
+  document.addEventListener("i18n:change",()=>{
+    applyAccent(root.getAttribute("data-accent"));syncSettings();
+    if(soonKey)$("soonTitle").textContent=t("page."+soonKey);
+    privacyBtn.textContent=t(privacyEl.hidden?"safety.privacy":"safety.hidePrivacy");
+    if(document.body.classList.contains("compact"))renderResume();
+  });
   $("charactersBtn").addEventListener("click",()=>{openSoon("characters");setActive("");});
   syncSettings();setActive("home");
 
@@ -863,34 +896,37 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   function note(t){syncNote.textContent=t;clearTimeout(noteTimer);noteTimer=setTimeout(()=>{syncNote.textContent="";},5000);}
   function afterHistoryChange(){if(!lastChat())homeMode="hero";syncSettings();}
   $("syncCopy").addEventListener("click",async()=>{
-    const code=syncCode(false);if(!code){note("henüz kod yok — ilk sohbette oluşur");return;}
-    try{await navigator.clipboard.writeText(code);note("kod kopyalandı");}catch(e){note("kopyalanamadı — kodu seçip kopyala");}
+    const code=syncCode(false);if(!code){note(t("note.noCode"));return;}
+    try{await navigator.clipboard.writeText(code);note(t("note.copied"));}catch(e){note(t("note.copyFailed"));}
   });
   async function applyCode(){
     const code=normCode($("syncInput").value);
-    if(!code){note("kod geçersiz — 20 karakter olmalı");return;}
-    note("yükleniyor…");
+    if(!code){note(t("note.invalid"));return;}
+    note(t("note.loading"));
     try{
       const best=await pullHistory(code,true);
       store(K_SYNC,code);$("syncInput").value="";afterHistoryChange();
-      note(best?"geçmiş yüklendi · "+NAMES[best.persona]:"kod kaydedildi · bu kodla sohbet yok");
-    }catch(e){note(e.status===429?"çok fazla deneme — biraz bekle":"şu an yüklenemedi, sonra tekrar dene");}
+      note(best?t("note.loaded",{name:NAMES[best.persona]}):t("note.empty"));
+    }catch(e){note(t(e.status===429?"note.tooMany":"note.loadFailed"));}
   }
   $("syncApply").addEventListener("click",applyCode);
   $("syncInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();applyCode();}});
   $("historyDelete").addEventListener("click",async()=>{
     const btn=$("historyDelete");
-    if(!deleteArmed){btn.textContent="emin misin? tekrar bas";deleteArmed=setTimeout(()=>{deleteArmed=null;btn.textContent="geçmişimi sil";},4000);return;}
-    clearTimeout(deleteArmed);deleteArmed=null;btn.textContent="geçmişimi sil";
+    if(!deleteArmed){btn.textContent=t("settings.deleteConfirm");deleteArmed=setTimeout(()=>{deleteArmed=null;btn.textContent=t("settings.delete");},4000);return;}
+    clearTimeout(deleteArmed);deleteArmed=null;btn.textContent=t("settings.delete");
     const code=syncCode(false);
-    try{if(code)await historyCall(code,"delete");}catch(e){note("sunucudaki geçmiş silinemedi, sonra tekrar dene");return;}
+    try{if(code)await historyCall(code,"delete");}catch(e){note(t("note.deleteFailed"));return;}
     try{localStorage.removeItem(K_CHAT);}catch(e){}
-    afterHistoryChange();note("geçmiş silindi");
+    afterHistoryChange();note(t("note.deleted"));
   });
 
   /* ---- SAFETY ---- */
   $("infoDot").addEventListener("click",()=>$("safety").classList.add("on"));
-  $("safetyClose").addEventListener("click",()=>$("safety").classList.remove("on"));
+  const privacyEl=$("privacy"),privacyBtn=$("privacyToggle"),safetyCard=document.querySelector(".safety-card");
+  function setPrivacy(open){privacyEl.hidden=!open;safetyCard.classList.toggle("wide",open);privacyBtn.textContent=t(open?"safety.hidePrivacy":"safety.privacy");privacyBtn.setAttribute("aria-expanded",String(open));if(open)privacyEl.scrollTop=0;}
+  privacyBtn.addEventListener("click",()=>setPrivacy(privacyEl.hidden));
+  $("safetyClose").addEventListener("click",()=>{$("safety").classList.remove("on");setPrivacy(false);});
 
   /* ---- wiring ---- */
   document.querySelectorAll("#threshold [data-persona]").forEach(el=>el.addEventListener("click",()=>enterChat(el.getAttribute("data-persona"))));
@@ -902,7 +938,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   input.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}});
   mInput.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();mSend();}});
   input.addEventListener("input",()=>{input.style.height="2.7em";input.style.height=Math.min(input.scrollHeight,128)+"px";});
-  document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(mirror.classList.contains("open"))closeMirror();else if(!moreSheet.hidden)toggleMore(false);else if(openPageAnyOpen())closePages();else if($("safety").classList.contains("on"))$("safety").classList.remove("on");}});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(mirror.classList.contains("open"))closeMirror();else if(!moreSheet.hidden)toggleMore(false);else if(openPageAnyOpen())closePages();else if($("safety").classList.contains("on")){$("safety").classList.remove("on");setPrivacy(false);}}});
 })();
 </script>
 </body>
