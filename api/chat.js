@@ -129,8 +129,29 @@ const SYSTEM_PROMPTS = { archon: ARCHON_SYS, multivac: MULTIVAC_SYS, mirror: MIR
 // Promptlar Türkçe olduğu için model Türkçeye çekilebiliyor; en sona İngilizce, kısa bir dil talimatı eklenir.
 // lang = arayüz dili (yalnızca "en" / "tr"); kullanıcının mesajının dili her zaman önceliklidir.
 const UI_LANGS = { en: "English", tr: "Turkish" };
-function languageNote(lang) {
+// Basit tespit (yalnızca Türkçe / İngilizce; diğer diller için null → modelin kendi algısı):
+// Türkçeye özgü harfler ya da sık Türkçe kelimeler → Turkish; sık İngilizce kelimeler → English.
+const TR_WORDS = /\b(ve|bir|bu|ne|için|çok|değil|ben|sen|bana|beni|mi|mı|mu|mü|ama|neden|nasıl|gibi|kendimi|artık|hiç|şu|şey)\b/gi;
+// ö/ü/ç Almanca ve Fransızcada da var; bu harflerle birlikte yalnızca başka dilde geçmeyen Türkçe kelimelere bakılır
+const TR_STRONG = /\b(bir|için|çok|değil|bana|beni|kendimi|artık|hiç|şey|önce|şimdi|bugün|yardım|neden|nasıl|gibi)\b/gi;
+const EN_WORDS = /\b(the|and|i|i'm|im|you|to|is|it|that|my|me|just|a|of|in|don't|dont|want|have|what|feel|this|be|am|are|so|not|with|for)\b/gi;
+function detectLanguage(text) {
+  if (typeof text !== "string" || !text.trim()) return null;
+  if (/[ğışİĞŞ]/.test(text)) return "Turkish";
+  const tr = (text.match(TR_WORDS) || []).length;
+  const en = (text.match(EN_WORDS) || []).length;
+  if (tr >= 2 && tr > en) return "Turkish";
+  if ((text.match(TR_STRONG) || []).length >= 1 && /[çöüÇÖÜ]/.test(text) && !/[äßÄ]/.test(text)) return "Turkish";
+  if (en >= 2 && en > tr && !/[^\x00-\x7F’‘“”–—…]/.test(text)) return "English";
+  return null;
+}
+
+function languageNote(lang, lastUserText) {
   const fallback = UI_LANGS[lang] || "English";
+  const detected = detectLanguage(lastUserText);
+  if (detected) {
+    return `\n\nLANGUAGE (overrides any language rule above): The user's latest message is written in ${detected}. Write your ENTIRE reply in ${detected} — every sentence, including any emergency or support information. Keep your character, voice and every safety rule unchanged.`;
+  }
   return `\n\nLANGUAGE (overrides any language rule above): Always reply in the same language as the user's most recent message — English message → English reply, Turkish → Turkish, German → German, and so on. If the language of that message is unclear (e.g. a single word or emoji), reply in ${fallback}. Keep your character, voice and every safety rule unchanged in any language.`;
 }
 const MAX_MESSAGES = 40;
@@ -151,7 +172,8 @@ export default async function handler(req, res) {
   try {
     const { persona, messages, code, lang } = req.body || {};
     if (!SYSTEM_PROMPTS[persona]) return res.status(400).json({ error: "Geçersiz persona" });
-    const system = SYSTEM_PROMPTS[persona] + languageNote(lang);
+    const lastUser = [...(Array.isArray(messages) ? messages : [])].reverse().find((m) => m && m.role === "user");
+    const system = SYSTEM_PROMPTS[persona] + languageNote(lang, lastUser && lastUser.content);
     if (!Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES) {
       return res.status(400).json({ error: "messages gerekli" });
     }
