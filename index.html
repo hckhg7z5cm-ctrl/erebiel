@@ -624,7 +624,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     // Karakter promptları sunucuda (api/chat.js); tarayıcı sadece hangi karakter olduğunu gönderir
     // sunucu en fazla 40 mesaj kabul eder; son kısmı gönder, kullanıcı mesajıyla başlasın
     const msgs=history.slice(-40);while(msgs.length&&msgs[0].role!=="user")msgs.shift();
-    const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({persona:p,messages:msgs,code:p==="mirror"?undefined:syncCode(true)})});
+    const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({persona:p,messages:msgs,code:p==="mirror"?undefined:syncCode(true),lang:i18n.lang()})});
     if(!r.ok){const e=new Error("HTTP "+r.status);e.status=r.status;throw e;}
     const d=await r.json();
     if(!d||!d.text)throw new Error("empty");

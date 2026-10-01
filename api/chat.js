@@ -125,6 +125,14 @@ ${CRISIS_GUIDE}
 DİL: Kişinin yazdığı dilde cevap ver (İngilizce yazana İngilizce, Almanca yazana Almanca); dili belirsizse Türkçe. Kısa ve yakın; her dilde birinci tekil şahıs.`;
 
 const SYSTEM_PROMPTS = { archon: ARCHON_SYS, multivac: MULTIVAC_SYS, mirror: MIRROR_SYS };
+
+// Promptlar Türkçe olduğu için model Türkçeye çekilebiliyor; en sona İngilizce, kısa bir dil talimatı eklenir.
+// lang = arayüz dili (yalnızca "en" / "tr"); kullanıcının mesajının dili her zaman önceliklidir.
+const UI_LANGS = { en: "English", tr: "Turkish" };
+function languageNote(lang) {
+  const fallback = UI_LANGS[lang] || "English";
+  return `\n\nLANGUAGE (overrides any language rule above): Always reply in the same language as the user's most recent message — English message → English reply, Turkish → Turkish, German → German, and so on. If the language of that message is unclear (e.g. a single word or emoji), reply in ${fallback}. Keep your character, voice and every safety rule unchanged in any language.`;
+}
 const MAX_MESSAGES = 40;
 const MAX_CHARS = 8000;
 
@@ -141,9 +149,9 @@ export default async function handler(req, res) {
   if (await rejectIfLimited(req, res)) return;
 
   try {
-    const { persona, messages, code } = req.body || {};
-    const system = SYSTEM_PROMPTS[persona];
-    if (!system) return res.status(400).json({ error: "Geçersiz persona" });
+    const { persona, messages, code, lang } = req.body || {};
+    if (!SYSTEM_PROMPTS[persona]) return res.status(400).json({ error: "Geçersiz persona" });
+    const system = SYSTEM_PROMPTS[persona] + languageNote(lang);
     if (!Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES) {
       return res.status(400).json({ error: "messages gerekli" });
     }
