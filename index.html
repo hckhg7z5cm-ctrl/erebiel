@@ -628,7 +628,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     if(!r.ok){const e=new Error("HTTP "+r.status);e.status=r.status;throw e;}
     const d=await r.json();
     if(!d||!d.text)throw new Error("empty");
-    return d.text;
+    return {text:d.text,lang:d.lang||null};
   }
 
   /* ---- VOICE (browser stand-in; ElevenLabs androjen sesler prod'da yerine geçecek) ---- */
@@ -648,9 +648,10 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   // İngilizce okunuşlarını Türkçe yazımla veriyoruz (yalnızca seslendirilen metinde, ekrandaki yazı aynı kalır)
   const SAY_AS=[[/\barchon\b/gi,"Arkon"],[/\bmultivac\b/gi,"Maltivek"]];
   function speakable(text,lang){return /^tr/i.test(lang)?SAY_AS.reduce((t,[re,s])=>t.replace(re,s),text):text;}
-  function speak(text,mode){
+  // langHint: the reply language reported by the server (or the UI language for greetings)
+  function speak(text,mode,langHint){
     if(muted||!synth)return;try{synth.cancel();}catch(e){}
-    const want=guessLang(text),v=pickVoice(want),lang=(v&&v.lang)||want;
+    const want=langHint?String(langHint).split("-")[0]:guessLang(text),v=pickVoice(want),lang=(v&&v.lang)||want;
     const u=new SpeechSynthesisUtterance(mode==="archon"||mode==="multivac"?speakable(text,lang):text);if(v)u.voice=v;u.lang=lang;
     u.pitch=mode==="archon"?0.9:(mode==="multivac"?1.08:1.0);u.rate=mode==="archon"?0.92:0.95;
     u.onstart=()=>document.body.classList.add("speaking");u.onend=()=>document.body.classList.remove("speaking");
@@ -738,7 +739,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     addBubble("bot",greet(p));
     if(saved)saved.forEach(m=>addBubble(m.role,m.content));
     threshold.style.display="none";resumeEl.hidden=true;inviteEl.hidden=true;brandBtn.hidden=true;chat.hidden=false;requestAnimationFrame(()=>chat.classList.add("show"));
-    setTimeout(()=>input.focus(),80);if(!saved)speak(greet(p),p);
+    setTimeout(()=>input.focus(),80);if(!saved)speak(greet(p),p,i18n.lang());
   }
   function backToGate(){stopSpeak();chat.classList.remove("show");setTimeout(()=>{chat.hidden=true;showHome();},reduce?0:400);persona=null;api=[];messages.innerHTML="";}
   async function send(){
@@ -746,7 +747,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     const p=persona,hist=api;
     stopSpeak();input.value="";input.style.height="2.7em";addBubble("user",text);hist.push({role:"user",content:text});saveChat(p,hist);
     busy=true;sendBtn.disabled=true;const think=addThinking();
-    try{const reply=await ask(p,hist);think.remove();hist.push({role:"assistant",content:reply});saveChat(p,hist);if(api===hist){addBubble("bot",reply);speak(reply,p);}}
+    try{const {text:reply,lang:replyLang}=await ask(p,hist);think.remove();hist.push({role:"assistant",content:reply});saveChat(p,hist);if(api===hist){addBubble("bot",reply);speak(reply,p,replyLang);}}
     catch(e){think.remove();addBubble("bot",t((e.status===429?"err.rate.":"err.net.")+(persona==="archon"?"archon":"multivac")));console.error(e);}
     finally{busy=false;sendBtn.disabled=false;input.focus();}
   }
@@ -760,7 +761,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   function revealCam(){if(mirror.classList.contains("clear"))return;cam.classList.remove("pulse");mirror.classList.add("clear");}
   function typeSpeech(text){return new Promise(res=>{speech.style.transition="opacity .5s ease";speech.style.opacity=1;let i=0;(function step(){if(i<=text.length){speech.innerHTML=text.slice(0,i)+'<span class="mcaret">▍</span>';i++;setTimeout(step,reduce?0:40+Math.random()*46);}else{speech.innerHTML=text+'<span class="mcaret">▍</span>';res();}})();});}
   function fadeSpeech(){return new Promise(res=>{if(!speech.textContent){res();return;}speech.style.opacity=0;setTimeout(()=>{speech.textContent="";res();},reduce?0:520);});}
-  async function mShow(text){pulseCam();await fadeSpeech();await typeSpeech(text);speak(text,"mirror");}
+  async function mShow(text,lang){pulseCam();await fadeSpeech();await typeSpeech(text);speak(text,"mirror",lang);}
   function mWaiting(){speech.style.opacity=1;speech.innerHTML='<span class="mcaret">▍</span>';}
 
   async function fbNext(){
@@ -787,7 +788,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     mApi=[];mFallback=false;mBusy=true;clearTimeout(mFbTimer);clearTimeout(mGreetTimer);mirror.classList.remove("clear");cam.classList.remove("pulse");
     setTimeout(()=>input&&null,0);
     // sabit giriş cümlesi; sonra yazı yavaşça kaybolur ve geriye yalnızca yansıma kalır
-    try{await mShow(greet("mirror"));}
+    try{await mShow(greet("mirror"),i18n.lang());}
     finally{mBusy=false;}
     mGreetTimer=setTimeout(()=>{if(mirror.classList.contains("open")){fadeSpeech();revealCam();}},reduce?800:2600);
   }
@@ -795,7 +796,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     const t=mInput.value.trim();if(!t||mBusy)return;mInput.value="";clearTimeout(mGreetTimer);revealCam();
     if(mFallback){const lines=mirrorFallback(),line=lines[Math.floor(Math.random()*lines.length)];await mShow(line);return;}
     mApi.push({role:"user",content:t});mBusy=true;mWaiting();
-    try{const line=await ask("mirror",mApi);mApi.push({role:"assistant",content:line});await mShow(line);}
+    try{const {text:line,lang:lineLang}=await ask("mirror",mApi);mApi.push({role:"assistant",content:line});await mShow(line,lineLang);}
     catch(e){startFallback();}
     finally{mBusy=false;}
   }

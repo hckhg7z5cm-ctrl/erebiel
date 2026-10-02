@@ -149,7 +149,8 @@ function withLanguageRule(personaPrompt, uiLang) {
 1. Always reply in the same language the user wrote their latest message in — whatever language that is (Spanish, German, French, Japanese, Arabic, Portuguese, Turkish, English, …), and however short the message is.
 2. If the latest message's language is genuinely unclear (an emoji, a number, a single word shared by several languages), use the language of the user's earlier messages in this conversation.
 3. Only when this is the first message of the conversation and its language is still unclear, reply in the user's interface language: ${ui}.
-4. Write the whole reply in that one language — every sentence, including any emergency or support information. Keep your character, voice and every safety rule exactly as they are in any language.`;
+4. Write the whole reply in that one language — every sentence, including any emergency or support information. Keep your character, voice and every safety rule exactly as they are in any language.
+5. Begin your reply with a language tag naming the language you are replying in, as a BCP 47 code in square brackets — for example [lang:en], [lang:tr], [lang:es], [lang:ar], [lang:ja]. Decide it from rules 1–3 before writing anything else, then write the reply in exactly that language. The tag is removed before the user sees the reply; never mention it.`;
   return head + personaPrompt + tail;
 }
 
@@ -197,11 +198,15 @@ export default async function handler(req, res) {
       return res.status(r.status).json({ error: (data.error && data.error.message) || "AI hatası" });
     }
 
-    const text = (data.content || [])
+    const raw = (data.content || [])
       .filter((b) => b.type === "text")
       .map((b) => b.text)
       .join("\n")
       .trim();
+    // the model opens with [lang:xx]; keep the code for the client (voice choice) and strip every tag from the text
+    const tag = raw.match(/^\s*\[lang:\s*([a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})*)\s*\]/i);
+    const replyLang = tag ? tag[1].toLowerCase() : null;
+    const text = raw.replace(/\[lang:[^\]\n]{0,20}\]\s*/gi, "").trim();
 
     // senkron kodu varsa sohbeti (cevap dahil) sunucuda sakla; başarısız olursa sohbet yine de devam eder
     let saved = false;
@@ -214,7 +219,7 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.status(200).json({ text, saved });
+    return res.status(200).json({ text, lang: replyLang, saved });
   } catch (e) {
     return res.status(500).json({ error: String(e) });
   }
