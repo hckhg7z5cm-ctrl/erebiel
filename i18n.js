@@ -1,5 +1,6 @@
 // i18n.js — EREBIEL arayüz metinleri (İngilizce / Türkçe).
 // Dil seçimi: Ayarlar'da seçilen dil → tarayıcının tercih ettiği dillerden çevirisi olan ilki (tam etiket, sonra ana dil) → İngilizce.
+// en ve tr bu dosyada; diğer 14 dil locales/<kod>.js dosyalarından gerektiğinde yüklenir.
 // HTML'de: data-i18n="anahtar" (metin), data-i18n-html="anahtar" (bizim yazdığımız biçimli metin),
 // data-i18n-attr="aria-label:anahtar;placeholder:anahtar" (öznitelikler). JS'te: i18n.t("anahtar", {n: 3}).
 (function () {
@@ -102,6 +103,8 @@
       "safety.privacy": "privacy",
       "safety.hidePrivacy": "hide privacy",
       "safety.close": "close",
+      // the English notice is the original, so it carries no translation note
+      "privacy.note": "",
       "privacy.html": `
         <h3>Privacy and personal data</h3>
         <p>This notice explains which data is processed when you use EREBIEL (erebiel.vercel.app), where it is kept and for how long. Data controller: <b>${CONTROLLER}</b> · Contact: <b>${CONTACT.en}</b></p>
@@ -229,6 +232,7 @@
       "safety.privacy": "gizlilik",
       "safety.hidePrivacy": "gizliliği gizle",
       "safety.close": "kapat",
+      "privacy.note": "Bu metin bilgilendirme amacıyla çevrilmiştir; hukuki bir anlaşmazlık durumunda İngilizce orijinal metin esas alınır.",
       "privacy.html": `
         <h3>Gizlilik ve kişisel veriler</h3>
         <p>Bu metin, EREBIEL'i (erebiel.vercel.app) kullanırken hangi verilerin işlendiğini, nerede ve ne kadar süre tutulduğunu anlatır. Veri sorumlusu: <b>${CONTROLLER}</b> · İletişim: <b>${CONTACT.tr}</b></p>
@@ -273,10 +277,19 @@
   };
 
   const KEY = "erebiel-lang";
-  const SUPPORTED = Object.keys(STRINGS);
+  // Every language the interface speaks, in picker order, with its name in its own language.
+  // English and Turkish live in this file; the rest load on demand from locales/<code>.js,
+  // which call i18n.register(code, strings). Add a language: one entry here + one locale file.
+  const LANGUAGES = [
+    ["en", "English"], ["tr", "Türkçe"], ["es", "Español"], ["fr", "Français"], ["de", "Deutsch"],
+    ["pt", "Português"], ["it", "Italiano"], ["nl", "Nederlands"], ["pl", "Polski"], ["ru", "Русский"],
+    ["ar", "العربية"], ["hi", "हिन्दी"], ["id", "Bahasa Indonesia"], ["zh-CN", "简体中文"], ["ja", "日本語"], ["ko", "한국어"],
+  ];
+  const SUPPORTED = LANGUAGES.map((l) => l[0]);
+  const NAMES = Object.fromEntries(LANGUAGES);
+  const RTL = ["ar"];
 
-  // Closest available translation for a BCP 47 tag: exact tag ("pt-BR"), then its base language ("pt").
-  // Adding a language later only needs a new STRINGS entry.
+  // Closest available translation for a BCP 47 tag: exact tag ("zh-CN"), then its base language ("pt-BR" → "pt", "zh-SG" → "zh-CN").
   function match(tag) {
     if (typeof tag !== "string" || !tag) return null;
     const lower = tag.toLowerCase();
@@ -300,11 +313,47 @@
     return "en";
   }
 
+  function setDocumentLang(lang) {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = RTL.includes(lang) ? "rtl" : "ltr";
+  }
+
+  // Load locales/<code>.js once. While the page is still being parsed (first paint), write the tag
+  // synchronously so the right language is in place before anything renders — no English flash.
+  const loading = {};
+  function load(lang) {
+    if (STRINGS[lang]) return Promise.resolve();
+    if (!loading[lang]) {
+      const src = "locales/" + lang + ".js";
+      if (document.readyState === "loading" && !document.body) {
+        document.write('<script src="' + src + '"><\/script>');
+        loading[lang] = Promise.resolve();
+      } else {
+        loading[lang] = new Promise((resolve, reject) => {
+          const el = document.createElement("script");
+          el.src = src;
+          el.onload = resolve;
+          el.onerror = () => { delete loading[lang]; reject(new Error("locale " + lang)); };
+          document.head.appendChild(el);
+        });
+      }
+    }
+    return loading[lang];
+  }
+
+  function register(lang, strings) {
+    STRINGS[lang] = strings;
+    // a locale that arrives after first render (rare) re-applies itself
+    if (lang === current && document.body) { apply(); document.dispatchEvent(new CustomEvent("i18n:change", { detail: { lang } })); }
+  }
+
   let current = detect();
-  document.documentElement.lang = current;
+  setDocumentLang(current);
+  load(current);
 
   function t(key, vars) {
-    let v = STRINGS[current][key];
+    const table = STRINGS[current] || STRINGS.en;
+    let v = table[key];
     if (v === undefined) v = STRINGS.en[key];
     if (v === undefined) return key;
     if (typeof v === "string" && vars) v = v.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
@@ -323,19 +372,17 @@
     });
   }
 
-  function setLang(lang) {
+  async function setLang(lang) {
     if (!SUPPORTED.includes(lang) || lang === current) return;
+    try { await load(lang); } catch (e) { return; } // offline / missing file: stay on the current language
     current = lang;
-    document.documentElement.lang = lang;
+    setDocumentLang(lang);
     try { localStorage.setItem(KEY, lang); } catch (e) {}
     apply();
     document.dispatchEvent(new CustomEvent("i18n:change", { detail: { lang } }));
   }
 
-  // a language's name in its own language, for the language picker ("English", "Türkçe", …)
-  function nativeName(code) {
-    try { const n = new Intl.DisplayNames([code], { type: "language" }).of(code); return n.charAt(0).toLocaleUpperCase(code) + n.slice(1); } catch (e) { return code; }
-  }
+  function nativeName(code) { return NAMES[code] || code; }
 
-  window.i18n = { t, apply, setLang, lang: () => current, supported: SUPPORTED, match, nativeName };
+  window.i18n = { t, apply, setLang, register, lang: () => current, supported: SUPPORTED, match, nativeName };
 })();

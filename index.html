@@ -307,8 +307,12 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   .safety-overlay{align-items:flex-start;justify-content:flex-start;overflow-y:auto;padding:max(6vh,1.2rem) max(6vw,1rem)}
   .safety-card{margin:auto}
   .safety-card.wide .privacy{max-height:none;overflow:visible}
-  .privacy{margin-top:1.4em;max-height:min(58vh,34rem);overflow-y:auto;padding:0 .4em 0 0;text-align:left;font-size:.8rem;line-height:1.75;letter-spacing:.02em}
+  .privacy{margin-top:1.4em;max-height:min(58vh,34rem);overflow-y:auto;padding-inline-end:.4em;text-align:start;font-size:.8rem;line-height:1.75;letter-spacing:.02em}
   .privacy[hidden]{display:none!important}
+  /* "translated for information; the English original prevails" — small, but set apart at the top */
+  .privacy-note{margin:0 0 1.3em;padding:.55em .85em;border-inline-start:2px solid rgba(var(--accent-rgb),.7);border-radius:4px;
+      background:rgba(var(--accent-rgb),.07);font-size:.7rem;line-height:1.6;font-weight:500;color:var(--accent)}
+  .privacy-note:empty{display:none}
   .privacy h3{margin:1.5em 0 .35em;font-family:"Cinzel",serif;font-weight:600;font-size:.72rem;letter-spacing:.2em;color:var(--accent)}
   .privacy h3:first-child{margin-top:0}
   .privacy p,.privacy li{color:var(--silver)}
@@ -464,6 +468,31 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   .m-icobtn:hover,.m-icobtn:focus-visible{color:var(--spectral)}
   .m-close{font-size:1.5rem;line-height:1}
 
+  /* ---------- LANGUAGES: picker, right-to-left (Arabic), scripts ---------- */
+  .set-select{appearance:none;-webkit-appearance:none;background:transparent;border:none;border-bottom:1px solid rgba(var(--accent-rgb),.35);
+      padding:.3em 1.2em .3em .2em;font-family:var(--sans);font-size:.8rem;font-weight:500;letter-spacing:.06em;color:var(--accent);cursor:pointer;
+      background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+      background-position:calc(100% - .55em) 55%,calc(100% - .3em) 55%;background-size:.25em .25em;background-repeat:no-repeat}
+  .set-select:focus-visible{outline:none;border-bottom-color:var(--accent)}
+  .set-select option{color:#1a1612;background:#f6f1e8}
+  /* letter-spacing breaks Arabic joining and Devanagari conjuncts; CJK reads better tighter */
+  html[lang="ar"] body *:not(.brand-word):not(.slogan):not(.sym-label):not(.set-input),html[lang="hi"] body *:not(.brand-word):not(.slogan):not(.sym-label):not(.set-input){letter-spacing:0!important}
+  html[lang="zh-CN"] .set-label,html[lang="ja"] .set-label,html[lang="ko"] .set-label,html[lang="zh-CN"] .invite-text,html[lang="ja"] .invite-text,html[lang="ko"] .invite-text{letter-spacing:.12em}
+  /* the four symbols are a fixed composition (Mirror is offset toward Multivac); keep their order in RTL */
+  .sym-row{direction:ltr}
+  /* RTL: mirror the chrome — rail to the right, corner buttons to the left, arrows flipped */
+  html[dir="rtl"] .rail{left:auto;right:0;background:linear-gradient(to left,rgba(10,8,6,.35),rgba(10,8,6,0))}
+  html[dir="rtl"][data-theme="light"] .rail{background:linear-gradient(to left,rgba(250,248,245,.7),rgba(250,248,245,0))}
+  html[dir="rtl"] .rail .nav-item::after{left:auto;right:calc(100% + 8px);transform:translate(4px,-50%)}
+  html[dir="rtl"] .rail .nav-item:hover::after,html[dir="rtl"] .rail .nav-item:focus-visible::after{transform:translate(0,-50%)}
+  html[dir="rtl"] .theme-toggle{right:auto;left:calc(4vw + env(safe-area-inset-left))}
+  html[dir="rtl"] .accent-toggle{left:calc(4vw + env(safe-area-inset-left) + 44px)}
+  html[dir="rtl"] .page-back{left:auto;right:calc(4vw + env(safe-area-inset-right))}
+  @media (min-width:720px){html[dir="rtl"] .page-back{right:calc(64px + 3vw)}}
+  html[dir="rtl"] .more-sheet{right:auto;left:4vw}
+  html[dir="rtl"] .page-back,html[dir="rtl"] .back-arrow,html[dir="rtl"] #send,html[dir="rtl"] #mSend,html[dir="rtl"] .res-go span[aria-hidden]{transform:scaleX(-1)}
+  html[dir="rtl"] .set-select{padding:.3em .2em .3em 1.2em;background-position:.3em 55%,.55em 55%}
+
   @media (prefers-reduced-motion:reduce){*{animation-duration:.001s!important;animation-iteration-count:1!important}body,#threshold,.theme-toggle{opacity:1}body::before,.vignette,.theme-toggle svg,.m-tint,.m-vignette{transition:none}#cam{transition:opacity .3s ease}}
 </style>
 </head>
@@ -512,7 +541,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
       <span data-i18n="safety.line1"></span>
       <br><br><span data-i18n="safety.line2"></span>
       <div class="safety-links"><button class="x" id="privacyToggle" aria-expanded="false" aria-controls="privacy" data-i18n="safety.privacy"></button><button class="x" id="safetyClose" data-i18n="safety.close"></button></div>
-      <div class="privacy" id="privacy" hidden data-i18n-html="privacy.html"></div>
+      <div class="privacy" id="privacy" hidden><p class="privacy-note" data-i18n="privacy.note"></p><div data-i18n-html="privacy.html"></div></div>
     </div>
   </div>
 
@@ -528,13 +557,13 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     <button class="page-back" data-close data-i18n-attr="aria-label:aria.back">‹</button>
     <p class="page-title" data-i18n="settings.title"></p>
     <div class="set-rows">
-      <div class="set-row"><span class="set-label" data-i18n="settings.language"></span><div class="seg" id="langPicker"></div></div>
+      <div class="set-row"><span class="set-label" data-i18n="settings.language"></span><select class="set-select" id="langPicker" data-i18n-attr="aria-label:settings.language"></select></div>
       <div class="set-row"><span class="set-label" data-i18n="settings.theme"></span><div class="seg"><button data-set-theme="dark" data-i18n="settings.dark"></button><button data-set-theme="light" data-i18n="settings.light"></button></div></div>
       <div class="set-row"><span class="set-label" data-i18n="settings.accent"></span><div class="seg"><button data-set-accent="gold" data-i18n="gold"></button><button data-set-accent="silver" data-i18n="silver"></button></div></div>
       <div class="set-sep"></div>
-      <div class="set-row"><span class="set-label" data-i18n="settings.syncCode"></span><span class="set-code" id="syncCodeText">—</span></div>
+      <div class="set-row"><span class="set-label" data-i18n="settings.syncCode"></span><span class="set-code" id="syncCodeText" dir="auto">—</span></div>
       <div class="set-row"><span></span><div class="seg"><button id="syncCopy" data-i18n="settings.copy"></button></div></div>
-      <div class="set-row"><input class="set-input" id="syncInput" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" maxlength="29" data-i18n-attr="aria-label:aria.syncInput"><div class="seg"><button id="syncApply" data-i18n="settings.load"></button></div></div>
+      <div class="set-row"><input class="set-input" id="syncInput" dir="ltr" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" maxlength="29" data-i18n-attr="aria-label:aria.syncInput"><div class="seg"><button id="syncApply" data-i18n="settings.load"></button></div></div>
       <div class="set-row"><span class="set-label" data-i18n="settings.history"></span><div class="seg"><button id="historyDelete" data-i18n="settings.delete"></button></div></div>
       <p class="set-note" id="syncNote" aria-live="polite"></p>
       <p class="set-hint" data-i18n="settings.hint"></p>
@@ -861,7 +890,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   function openSoon(key){soonKey=key;$("soonTitle").textContent=t("page."+key);$("soonGlyph").hidden=key!=="characters";openPage(soonEl);}
   function syncSettings(){
     $("syncCodeText").textContent=syncCode(false)||t("settings.noCode");
-    document.querySelectorAll("[data-set-lang]").forEach(b=>b.classList.toggle("is-on",b.getAttribute("data-set-lang")===i18n.lang()));
+    $("langPicker").value=i18n.lang();
     const light=root.getAttribute("data-theme")==="light",silver=root.getAttribute("data-accent")==="silver";
     document.querySelectorAll("[data-set-theme]").forEach(b=>b.classList.toggle("is-on",(b.getAttribute("data-set-theme")==="light")===light));
     document.querySelectorAll("[data-set-accent]").forEach(b=>b.classList.toggle("is-on",(b.getAttribute("data-set-accent")==="silver")===silver));
@@ -881,8 +910,8 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",closePages));
   document.querySelectorAll("[data-set-theme]").forEach(b=>b.addEventListener("click",()=>setTheme(b.getAttribute("data-set-theme"))));
   document.querySelectorAll("[data-set-accent]").forEach(b=>b.addEventListener("click",()=>setAccent(b.getAttribute("data-set-accent"))));
-  $("langPicker").innerHTML=i18n.supported.map(l=>`<button data-set-lang="${l}" lang="${l}">${i18n.nativeName(l)}</button>`).join("");
-  document.querySelectorAll("[data-set-lang]").forEach(b=>b.addEventListener("click",()=>i18n.setLang(b.getAttribute("data-set-lang"))));
+  $("langPicker").innerHTML=i18n.supported.map(l=>`<option value="${l}" lang="${l}">${i18n.nativeName(l)}</option>`).join("");
+  $("langPicker").addEventListener("change",e=>i18n.setLang(e.target.value));
   // static text is re-applied by i18n.setLang; refresh the pieces built in JS
   document.addEventListener("i18n:change",()=>{
     applyAccent(root.getAttribute("data-accent"));syncSettings();
