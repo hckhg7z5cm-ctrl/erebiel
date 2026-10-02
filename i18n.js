@@ -4,11 +4,10 @@
 // HTML'de: data-i18n="anahtar" (metin), data-i18n-html="anahtar" (bizim yazdığımız biçimli metin),
 // data-i18n-attr="aria-label:anahtar;placeholder:anahtar" (öznitelikler). JS'te: i18n.t("anahtar", {n: 3}).
 (function () {
-  const CONTACT = {
-    en: "contact details will be added soon",
-    tr: "iletişim bilgisi yakında eklenecektir",
-  };
+  // ===== Gizlilik metnindeki veri sorumlusu ve iletişim — TEK DEĞİŞİKLİK YERİ (16 dilin hepsi buradan okur) =====
+  // Geçici: uluslararası şirket kurulduğunda CONTROLLER şirket adıyla, CONTACT_EMAIL gerçek adresle güncellenecek.
   const CONTROLLER = "Zihha Shah";
+  const CONTACT_EMAIL = ""; // boşken her dilde "iletişim bilgisi yakında eklenecek" metni ("privacy.contactSoon") gösterilir
 
   const STRINGS = {
     en: {
@@ -105,9 +104,10 @@
       "safety.close": "close",
       // the English notice is the original, so it carries no translation note
       "privacy.note": "",
+      "privacy.contactSoon": "contact details will be added soon",
       "privacy.html": `
         <h3>Privacy and personal data</h3>
-        <p>This notice explains which data is processed when you use EREBIEL (erebiel.vercel.app), where it is kept and for how long. Data controller: <b>${CONTROLLER}</b> · Contact: <b>${CONTACT.en}</b></p>
+        <p>This notice explains which data is processed when you use EREBIEL (erebiel.vercel.app), where it is kept and for how long. Data controller: <b>{controller}</b> · Contact: <b>{contact}</b></p>
         <h3>No account</h3>
         <p>EREBIEL has no sign-up; we don't ask for your name, email or phone number. The only thing that identifies you is the random <b>sync code</b> your browser creates for you.</p>
         <h3>Your chats</h3>
@@ -139,7 +139,7 @@
         <h3>Transfers abroad</h3>
         <p>The servers of Anthropic, Vercel and Redis Cloud may be located outside Türkiye. By using the service you give explicit consent to your messages being transferred to these providers.</p>
         <h3>Your rights</h3>
-        <p>Under Article 11 of the Turkish Personal Data Protection Law No. 6698 (KVKK) you have the right to learn whether your data is processed, request information, and ask for correction, deletion or object. You can delete your chat history yourself in Settings; for other requests contact us (contact: <b>${CONTACT.en}</b>). We may ask for your sync code with your request, since we have no other way to identify you.</p>
+        <p>Under Article 11 of the Turkish Personal Data Protection Law No. 6698 (KVKK) you have the right to learn whether your data is processed, request information, and ask for correction, deletion or object. You can delete your chat history yourself in Settings; for other requests contact us (contact: <b>{contact}</b>). We may ask for your sync code with your request, since we have no other way to identify you.</p>
         <h3>Age</h3>
         <p>EREBIEL is not designed for people under 18.</p>
         <h3>Not a support service</h3>
@@ -232,10 +232,11 @@
       "safety.privacy": "gizlilik",
       "safety.hidePrivacy": "gizliliği gizle",
       "safety.close": "kapat",
+      "privacy.contactSoon": "iletişim bilgisi yakında eklenecektir",
       "privacy.note": "Bu metin bilgilendirme amacıyla çevrilmiştir; hukuki bir anlaşmazlık durumunda İngilizce orijinal metin esas alınır.",
       "privacy.html": `
         <h3>Gizlilik ve kişisel veriler</h3>
-        <p>Bu metin, EREBIEL'i (erebiel.vercel.app) kullanırken hangi verilerin işlendiğini, nerede ve ne kadar süre tutulduğunu anlatır. Veri sorumlusu: <b>${CONTROLLER}</b> · İletişim: <b>${CONTACT.tr}</b></p>
+        <p>Bu metin, EREBIEL'i (erebiel.vercel.app) kullanırken hangi verilerin işlendiğini, nerede ve ne kadar süre tutulduğunu anlatır. Veri sorumlusu: <b>{controller}</b> · İletişim: <b>{contact}</b></p>
         <h3>Hesap yok</h3>
         <p>EREBIEL'de üyelik yoktur; adın, e-postan ya da telefonun istenmez. Seni tanımlayan tek şey, tarayıcının senin için ürettiği rastgele <b>senkron kodudur</b>.</p>
         <h3>Sohbetlerin</h3>
@@ -267,7 +268,7 @@
         <h3>Yurt dışına aktarım</h3>
         <p>Anthropic, Vercel ve Redis Cloud'un sunucuları Türkiye dışında bulunabilir. Hizmeti kullanarak mesajlarının bu sağlayıcılara aktarılmasına açık rıza vermiş olursun.</p>
         <h3>Hakların</h3>
-        <p>6698 sayılı KVKK'nın 11. maddesi kapsamında verilerinin işlenip işlenmediğini öğrenme, bilgi isteme, düzeltme, silme ve itiraz etme hakların vardır. Sohbet geçmişini Ayarlar'dan kendin silebilirsin; diğer talepler için bize ulaşabilirsin (iletişim: <b>${CONTACT.tr}</b>). Talebinde senkron kodunu paylaşmanı isteyebiliriz, çünkü seni başka türlü tanıyamayız.</p>
+        <p>6698 sayılı KVKK'nın 11. maddesi kapsamında verilerinin işlenip işlenmediğini öğrenme, bilgi isteme, düzeltme, silme ve itiraz etme hakların vardır. Sohbet geçmişini Ayarlar'dan kendin silebilirsin; diğer talepler için bize ulaşabilirsin (iletişim: <b>{contact}</b>). Talebinde senkron kodunu paylaşmanı isteyebiliriz, çünkü seni başka türlü tanıyamayız.</p>
         <h3>Yaş</h3>
         <p>EREBIEL 18 yaşından küçükler için tasarlanmamıştır.</p>
         <h3>Destek değildir</h3>
@@ -356,8 +357,16 @@
     let v = table[key];
     if (v === undefined) v = STRINGS.en[key];
     if (v === undefined) return key;
+    if (typeof v === "string" && /\{(controller|contact)\}/.test(v)) {
+      const contact = CONTACT_EMAIL || t("privacy.contactSoon");
+      v = v.replace(/\{controller\}/g, escapeHtml(CONTROLLER)).replace(/\{contact\}/g, escapeHtml(contact));
+    }
     if (typeof v === "string" && vars) v = v.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
     return v;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   }
 
   function apply(root) {
