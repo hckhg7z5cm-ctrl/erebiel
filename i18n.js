@@ -166,7 +166,7 @@
           <li>No cookies, advertising or analytics/tracking tools are used.</li>
         </ul>
         <h3>Stored on your device</h3>
-        <p>Your browser's local storage keeps: your theme, accent and language preferences, the time of your last visit, a copy of your latest chat and your sync code. Clearing your browser data removes them.</p>
+        <p>Your browser's local storage keeps: your theme, accent and language preferences, the time of your last visit, your conversations with Archon and Multivac (up to the 40 most recent), your profile — profile photo, background colour or photo, and Vision text — and your sync code. Your profile is never sent to our server. Clearing your browser data removes all of this.</p>
         <h3>Sync code</h3>
         <p>The code works like a password: anyone who knows it can open those chats. Don't share it. If you lose the code and also clear your browser data, your chats on the server can no longer be reached; they are deleted automatically after 90 days.</p>
         <h3>Transfers abroad</h3>
@@ -177,7 +177,7 @@
         <p>EREBIEL is not designed for people under 18.</p>
         <h3>Not a support service</h3>
         <p>EREBIEL is a reflective experience; it does not replace professional psychological support, diagnosis or treatment. In a crisis, contact your local emergency number, a professional or someone you trust.</p>
-        <p class="muted">Last updated: 2 October 2026. If this notice changes, it is updated in this window.</p>`,
+        <p class="muted">Last updated: 5 October 2026. If this notice changes, it is updated in this window.</p>`,
     },
 
     tr: {
@@ -328,7 +328,7 @@
           <li>Çerez, reklam ya da analiz/izleme aracı kullanılmaz.</li>
         </ul>
         <h3>Cihazında tutulanlar</h3>
-        <p>Tarayıcının yerel belleğinde şunlar durur: tema, vurgu rengi ve dil tercihin, son ziyaret zamanın, son sohbetinin bir kopyası ve senkron kodun. Tarayıcı verilerini silersen bunlar da silinir.</p>
+        <p>Tarayıcının yerel belleğinde şunlar durur: tema, vurgu rengi ve dil tercihin, son ziyaret zamanın, Archon ve Multivac ile sohbetlerin (en son 40 sohbet), profilin — profil fotoğrafı, arka plan rengi ya da fotoğrafı ve Vision metni — ve senkron kodun. Profilin sunucumuza hiç gönderilmez. Tarayıcı verilerini silersen bunların hepsi silinir.</p>
         <h3>Senkron kodu</h3>
         <p>Kod bir şifre gibidir: bilen herkes o sohbetleri açabilir. Kimseyle paylaşma. Kodu kaybeder ve tarayıcı verilerini de silersen, sunucudaki sohbetlerine bir daha ulaşılamaz; 90 gün sonunda kendiliğinden silinirler.</p>
         <h3>Yurt dışına aktarım</h3>
@@ -339,7 +339,7 @@
         <p>EREBIEL 18 yaşından küçükler için tasarlanmamıştır.</p>
         <h3>Destek değildir</h3>
         <p>EREBIEL bir yansıma deneyimidir; profesyonel psikolojik destek, tanı ya da tedavi yerine geçmez. Kriz anında bir uzmana ya da güvendiğin birine ulaş.</p>
-        <p class="muted">Son güncelleme: 2 Ekim 2026. Bu metin değişirse bu pencerede güncellenir.</p>`,
+        <p class="muted">Son güncelleme: 5 Ekim 2026. Bu metin değişirse bu pencerede güncellenir.</p>`,
     },
   };
 
