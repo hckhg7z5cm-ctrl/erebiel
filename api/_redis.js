@@ -164,6 +164,12 @@ export async function loadHistory(code) {
   return chats;
 }
 
+// forget a single persona's stored conversation (the user deleted it from their list)
+export async function forgetPersonaHistory(code, persona) {
+  const client = await withTimeout(getRedis(), 1500);
+  await withTimeout(client.hDel(historyKey(code), persona), 1500);
+}
+
 export async function deleteHistory(code) {
   const client = await withTimeout(getRedis(), 1500);
   await withTimeout(client.del(historyKey(code)), 1500);
