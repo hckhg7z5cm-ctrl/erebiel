@@ -738,13 +738,14 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
       padding:calc(2.4vh + env(safe-area-inset-top) + 3.8rem) clamp(1rem,4vw,3.4rem) calc(2rem + env(safe-area-inset-bottom))}
   /* each half wears its AI's own colours: Archon's night aura (indigo · violet · wine · deep teal around a white-blue beam),
      Multivac's luminous gold orb inside its pastel halo */
-  #history .hist-archon{--h-bg:#0c0a1c;--h-fg:#e2e3f8;--h-accent:#c3ccff;--h-br:rgba(160,150,255,.22);--h-sub:#9a98c4;position:relative;isolation:isolate;
-      background:radial-gradient(60% 42% at 50% 0%,rgba(98,70,190,.5),transparent 72%),radial-gradient(70% 50% at 0% 100%,rgba(18,94,99,.5),transparent 70%),
-      radial-gradient(60% 50% at 100% 65%,rgba(106,26,54,.5),transparent 70%),radial-gradient(70% 60% at 30% 45%,rgba(38,44,128,.45),transparent 75%),var(--h-bg)}
-  #history .hist-multivac{--h-bg:#120c07;--h-fg:#f3e8d2;--h-accent:#f0c070;--h-br:rgba(240,192,112,.22);--h-sub:#b09a78;
-      background:radial-gradient(60% 42% at 50% 0%,rgba(245,180,85,.5),transparent 72%),radial-gradient(70% 50% at 0% 100%,rgba(235,110,165,.24),transparent 70%),
-      radial-gradient(60% 50% at 100% 60%,rgba(95,150,240,.2),transparent 70%),radial-gradient(55% 45% at 70% 100%,rgba(120,200,130,.14),transparent 70%),
-      radial-gradient(70% 60% at 30% 45%,rgba(160,105,215,.18),transparent 75%),var(--h-bg)}
+  #history .hist-archon{--h-bg:#04060d;--h-fg:#dfe7f6;--h-accent:#b4cbff;--h-br:rgba(140,170,255,.18);--h-sub:#8794b2;position:relative;isolation:isolate;
+      background:radial-gradient(42% 60% at 50% -10%,rgba(150,185,255,.2),transparent 70%),radial-gradient(75% 45% at 50% -6%,rgba(40,84,196,.48),transparent 72%),
+      radial-gradient(70% 50% at 0% 100%,rgba(14,38,110,.55),transparent 70%),radial-gradient(60% 50% at 100% 70%,rgba(22,44,120,.4),transparent 70%),
+      linear-gradient(180deg,#070c1c,#03050b)}
+  #history .hist-multivac{--h-bg:#0f0b06;--h-fg:#f5e9cf;--h-accent:#e8c87e;--h-br:rgba(232,200,126,.2);--h-sub:#b5a07a;
+      background:radial-gradient(40% 60% at 50% -10%,rgba(255,240,205,.28),transparent 70%),radial-gradient(75% 45% at 50% -6%,rgba(214,168,80,.45),transparent 72%),
+      radial-gradient(70% 50% at 0% 100%,rgba(150,105,40,.4),transparent 70%),radial-gradient(60% 50% at 100% 70%,rgba(230,200,150,.16),transparent 70%),
+      linear-gradient(180deg,#17110a,#0b0805)}
   html[data-theme="light"] #history .hist-archon{--h-bg:#e8e6f3;--h-fg:#1e1b33;--h-accent:#4b3f8f;--h-br:rgba(75,63,143,.18);--h-sub:#625f84;
       background:radial-gradient(60% 42% at 50% 0%,rgba(148,131,196,.38),transparent 72%),radial-gradient(70% 50% at 0% 100%,rgba(124,147,163,.35),transparent 70%),
       radial-gradient(60% 50% at 100% 65%,rgba(196,140,170,.25),transparent 70%),var(--h-bg)}
