@@ -811,6 +811,10 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   @media (min-width:720px){#history .hist-archon{padding-inline-start:calc(64px + 3vw)}html[dir="rtl"] #history .hist-archon{padding-inline-start:clamp(1rem,4vw,3.4rem)}html[dir="rtl"] #history .hist-multivac{padding-inline-start:calc(64px + 3vw)}}
   @media (max-width:719px){#history .hist-col{padding-bottom:calc(5.5rem + env(safe-area-inset-bottom))}#history .hist-new{font-size:.64rem;padding:.3em .7em}}
   body[data-page="history"] .rail,body[data-page="history"] .tabbar{background:none}
+  /* the history screen is always dark, so its menu icons stay light even in the light theme */
+  html[data-theme="light"] body[data-page="history"] .nav-item{color:#d6deef;opacity:.6}
+  html[data-theme="light"] body[data-page="history"] .nav-item:hover,html[data-theme="light"] body[data-page="history"] .nav-item:focus-visible,html[data-theme="light"] body[data-page="history"] .nav-item.is-active{color:var(--accent);opacity:1}
+  html[data-theme="light"] body[data-page="history"] .rail .nav-item::after{background:rgba(10,12,22,.92);color:#e6ecf8;box-shadow:0 4px 14px rgba(0,0,0,.4)}
 
   /* ---------- PREMIUM ---------- */
   .tiers{width:min(100%,64rem);display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:2rem;align-items:stretch}
