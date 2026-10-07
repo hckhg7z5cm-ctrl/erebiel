@@ -233,5 +233,8 @@ i18n.register("id", {
   "item.flip": "Balik",
   "item.confirmDelete": "Hapus foto ini dari halamanmu?",
   "lasso.redraw": "Gambar ulang",
-  "lasso.tooSmall": "Area itu terlalu kecil — gambar bentuk yang lebih besar."
+  "lasso.tooSmall": "Area itu terlalu kecil — gambar bentuk yang lebih besar.",
+  "history.deleteAll": "Hapus semua chat",
+  "history.confirmDeleteAll": "Hapus seluruh riwayat chatmu? Tindakan ini tidak bisa dibatalkan.",
+  "history.deletedAll": "Semua chat dihapus"
 });

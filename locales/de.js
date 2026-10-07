@@ -233,5 +233,8 @@ i18n.register("de", {
   "item.flip": "Spiegeln",
   "item.confirmDelete": "Dieses Foto von deiner Seite löschen?",
   "lasso.redraw": "Neu zeichnen",
-  "lasso.tooSmall": "Dieser Bereich ist zu klein — zeichne eine größere Form."
+  "lasso.tooSmall": "Dieser Bereich ist zu klein — zeichne eine größere Form.",
+  "history.deleteAll": "Alle Chats löschen",
+  "history.confirmDeleteAll": "Deinen gesamten Chatverlauf löschen? Das lässt sich nicht rückgängig machen.",
+  "history.deletedAll": "Alle Chats gelöscht"
 });

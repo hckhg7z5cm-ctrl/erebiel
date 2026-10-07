@@ -233,5 +233,8 @@ i18n.register("zh-CN", {
   "item.flip": "翻转",
   "item.confirmDelete": "要从页面中删除这张照片吗？",
   "lasso.redraw": "重新绘制",
-  "lasso.tooSmall": "区域太小了，请画一个更大的形状。"
+  "lasso.tooSmall": "区域太小了，请画一个更大的形状。",
+  "history.deleteAll": "删除所有聊天",
+  "history.confirmDeleteAll": "删除全部聊天记录？此操作无法撤销。",
+  "history.deletedAll": "所有聊天已删除"
 });

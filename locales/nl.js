@@ -233,5 +233,8 @@ i18n.register("nl", {
   "item.flip": "Spiegelen",
   "item.confirmDelete": "Deze foto van je pagina verwijderen?",
   "lasso.redraw": "Opnieuw tekenen",
-  "lasso.tooSmall": "Dat gebied is te klein — teken een grotere vorm."
+  "lasso.tooSmall": "Dat gebied is te klein — teken een grotere vorm.",
+  "history.deleteAll": "Alle chats verwijderen",
+  "history.confirmDeleteAll": "Je hele chatgeschiedenis verwijderen? Dit kan niet ongedaan worden gemaakt.",
+  "history.deletedAll": "Alle chats verwijderd"
 });

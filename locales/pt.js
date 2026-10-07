@@ -233,5 +233,8 @@ i18n.register("pt", {
   "item.flip": "Espelhar",
   "item.confirmDelete": "Excluir esta foto da sua página?",
   "lasso.redraw": "Desenhar de novo",
-  "lasso.tooSmall": "Essa área é pequena demais — desenhe uma forma maior."
+  "lasso.tooSmall": "Essa área é pequena demais — desenhe uma forma maior.",
+  "history.deleteAll": "Excluir todas as conversas",
+  "history.confirmDeleteAll": "Excluir todo o seu histórico de conversas? Não dá para desfazer.",
+  "history.deletedAll": "Todas as conversas excluídas"
 });

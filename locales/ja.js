@@ -233,5 +233,8 @@ i18n.register("ja", {
   "item.flip": "反転",
   "item.confirmDelete": "この写真をページから削除しますか？",
   "lasso.redraw": "描き直す",
-  "lasso.tooSmall": "範囲が小さすぎます。もっと大きく描いてください。"
+  "lasso.tooSmall": "範囲が小さすぎます。もっと大きく描いてください。",
+  "history.deleteAll": "すべてのチャットを削除",
+  "history.confirmDeleteAll": "チャット履歴をすべて削除しますか？元に戻せません。",
+  "history.deletedAll": "すべてのチャットを削除しました"
 });

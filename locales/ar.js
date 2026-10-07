@@ -233,5 +233,8 @@ i18n.register("ar", {
   "item.flip": "قلب أفقي",
   "item.confirmDelete": "حذف هذه الصورة من صفحتك؟",
   "lasso.redraw": "إعادة الرسم",
-  "lasso.tooSmall": "المساحة صغيرة جدًا — ارسم شكلًا أكبر."
+  "lasso.tooSmall": "المساحة صغيرة جدًا — ارسم شكلًا أكبر.",
+  "history.deleteAll": "حذف كل المحادثات",
+  "history.confirmDeleteAll": "حذف سجل محادثاتك بالكامل؟ لا يمكن التراجع عن ذلك.",
+  "history.deletedAll": "تم حذف كل المحادثات"
 });

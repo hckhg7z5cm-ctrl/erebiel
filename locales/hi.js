@@ -233,5 +233,8 @@ i18n.register("hi", {
   "item.flip": "पलटें",
   "item.confirmDelete": "यह फ़ोटो आपके पेज से हटाएँ?",
   "lasso.redraw": "फिर से बनाएँ",
-  "lasso.tooSmall": "यह हिस्सा बहुत छोटा है — बड़ा आकार बनाएँ।"
+  "lasso.tooSmall": "यह हिस्सा बहुत छोटा है — बड़ा आकार बनाएँ।",
+  "history.deleteAll": "सभी चैट हटाएँ",
+  "history.confirmDeleteAll": "अपनी पूरी चैट हिस्ट्री हटाएँ? इसे पहले जैसा नहीं किया जा सकता।",
+  "history.deletedAll": "सभी चैट हटा दी गईं"
 });

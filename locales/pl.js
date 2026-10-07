@@ -233,5 +233,8 @@ i18n.register("pl", {
   "item.flip": "Odbij",
   "item.confirmDelete": "Usunąć to zdjęcie ze strony?",
   "lasso.redraw": "Narysuj ponownie",
-  "lasso.tooSmall": "Ten obszar jest za mały — narysuj większy kształt."
+  "lasso.tooSmall": "Ten obszar jest za mały — narysuj większy kształt.",
+  "history.deleteAll": "Usuń wszystkie czaty",
+  "history.confirmDeleteAll": "Usunąć całą historię czatów? Tego nie można cofnąć.",
+  "history.deletedAll": "Wszystkie czaty usunięte"
 });

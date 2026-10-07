@@ -233,5 +233,8 @@ i18n.register("it", {
   "item.flip": "Rifletti",
   "item.confirmDelete": "Eliminare questa foto dalla tua pagina?",
   "lasso.redraw": "Ridisegna",
-  "lasso.tooSmall": "L'area è troppo piccola: disegna una forma più grande."
+  "lasso.tooSmall": "L'area è troppo piccola: disegna una forma più grande.",
+  "history.deleteAll": "Elimina tutte le chat",
+  "history.confirmDeleteAll": "Eliminare tutta la cronologia delle chat? Non si può annullare.",
+  "history.deletedAll": "Tutte le chat eliminate"
 });

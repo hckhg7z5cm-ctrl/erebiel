@@ -233,5 +233,8 @@ i18n.register("ko", {
   "item.flip": "뒤집기",
   "item.confirmDelete": "이 사진을 페이지에서 삭제할까요?",
   "lasso.redraw": "다시 그리기",
-  "lasso.tooSmall": "영역이 너무 작아요. 더 크게 그려 주세요."
+  "lasso.tooSmall": "영역이 너무 작아요. 더 크게 그려 주세요.",
+  "history.deleteAll": "모든 채팅 삭제",
+  "history.confirmDeleteAll": "채팅 기록을 모두 삭제할까요? 되돌릴 수 없습니다.",
+  "history.deletedAll": "모든 채팅이 삭제되었습니다"
 });

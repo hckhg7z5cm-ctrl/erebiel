@@ -233,5 +233,8 @@ i18n.register("es", {
   "item.flip": "Voltear",
   "item.confirmDelete": "¿Eliminar esta foto de tu página?",
   "lasso.redraw": "Volver a dibujar",
-  "lasso.tooSmall": "Esa zona es demasiado pequeña: dibuja una forma más grande."
+  "lasso.tooSmall": "Esa zona es demasiado pequeña: dibuja una forma más grande.",
+  "history.deleteAll": "Eliminar todos los chats",
+  "history.confirmDeleteAll": "¿Eliminar todo tu historial de chats? No se puede deshacer.",
+  "history.deletedAll": "Todos los chats eliminados"
 });

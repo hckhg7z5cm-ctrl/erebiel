@@ -233,5 +233,8 @@ i18n.register("ru", {
   "item.flip": "Отразить",
   "item.confirmDelete": "Удалить это фото со страницы?",
   "lasso.redraw": "Нарисовать заново",
-  "lasso.tooSmall": "Область слишком мала — нарисуйте фигуру побольше."
+  "lasso.tooSmall": "Область слишком мала — нарисуйте фигуру побольше.",
+  "history.deleteAll": "Удалить все чаты",
+  "history.confirmDeleteAll": "Удалить всю историю чатов? Это нельзя отменить.",
+  "history.deletedAll": "Все чаты удалены"
 });

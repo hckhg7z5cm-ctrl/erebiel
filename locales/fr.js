@@ -233,5 +233,8 @@ i18n.register("fr", {
   "item.flip": "Retourner",
   "item.confirmDelete": "Supprimer cette photo de ta page ?",
   "lasso.redraw": "Redessiner",
-  "lasso.tooSmall": "Cette zone est trop petite — dessine une forme plus grande."
+  "lasso.tooSmall": "Cette zone est trop petite — dessine une forme plus grande.",
+  "history.deleteAll": "Supprimer toutes les discussions",
+  "history.confirmDeleteAll": "Supprimer tout ton historique de discussions ? C'est irréversible.",
+  "history.deletedAll": "Toutes les discussions ont été supprimées"
 });
