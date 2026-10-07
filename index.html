@@ -1779,9 +1779,14 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     function run(name,mode,fn){return db().then(d=>new Promise((res,rej)=>{const tx=d.transaction(name,mode);let req;
       try{req=fn(tx.objectStore(name));}catch(e){rej(e);try{tx.abort();}catch(_){}return;}
       tx.oncomplete=()=>res(req?req.result:undefined);tx.onerror=tx.onabort=()=>rej(tx.error||new Error("tx"));}));}
+    // Safari cannot reliably keep Blobs in IndexedDB, so images are written as raw bytes and turned back into Blobs on reading
+    async function pack(v){if(!v||!(v.blob instanceof Blob))return v;const o=Object.assign({},v);
+      o.buf=await v.blob.arrayBuffer();o.type=v.blob.type;delete o.blob;if(v.thumb instanceof Blob){o.tbuf=await v.thumb.arrayBuffer();o.ttype=v.thumb.type;delete o.thumb;}return o;}
+    function unpack(o){if(!o||!o.buf)return o;const v=Object.assign({},o);v.blob=new Blob([o.buf],{type:o.type||"image/jpeg"});if(o.tbuf)v.thumb=new Blob([o.tbuf],{type:o.ttype||o.type||"image/jpeg"});
+      delete v.buf;delete v.tbuf;delete v.type;delete v.ttype;return v;}
     return {
-      all:s=>run(s,"readonly",o=>o.getAll()),
-      put:(s,v)=>run(s,"readwrite",o=>o.put(v)),
+      all:async s=>{const l=await run(s,"readonly",o=>o.getAll());return s==="images"?l.map(unpack):l;},
+      put:async(s,v)=>{const w=s==="images"?await pack(v):v;return run(s,"readwrite",o=>o.put(w));},
       del:(s,k)=>run(s,"readwrite",o=>o.delete(k)),
       kvDel:k=>run("kv","readwrite",o=>o.delete(k)),
     };
