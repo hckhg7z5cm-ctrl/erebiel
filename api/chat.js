@@ -109,23 +109,38 @@ const MAX_MESSAGES = 40;
 const MAX_CHARS = 8000;
 
 // ---- Model ----
-// Claude Sonnet 5.5: resmi dokümanda "hız ve zekânın en iyi dengesi" (latency: Fast). Bu modelde thinking
-// "disabled" ile kapatılamaz (400 verir); en düşük ayar "between_tools": araç yokken cevap hiç düşünmeden,
-// doğrudan metinle başlar. between_tools yalnızca effort "high" ve altında kabul edilir.
-// Sohbet için effort "medium" (dokümanın sohbet/gecikme önerisi: medium ya da low).
 const MODEL = "claude-sonnet-5-5";
-const THINKING = { type: "between_tools" };
-const EFFORT = "medium";
 // Güvenlik sınıflandırıcısı daha tek kelime yazılmadan cevabı reddederse (stop_reason "refusal") aynı istek
 // bir kez Claude Sonnet 5 ile, thinking kapalı olarak tekrarlanır — kriz mesajlarında kullanıcı cevapsız kalmasın.
 const FALLBACK_MODEL = "claude-sonnet-5";
 const FALLBACK_THINKING = { type: "disabled" };
 
-// Sohbet cevapları kısa: 700 token tavanı. Kod ya da uzun/ayrıntılı istek sezilirse tavan yükselir.
-// Bu yalnızca bir üst sınır; model daha kısa yazarsa ücret de o kadardır, yanlış pozitif zararsızdır.
+// ---- Hız/zekâ dengesi: zorluğa göre thinking ve effort ----
+// Resmi dokümana göre (platform.claude.com/docs/en/api/errors, .../build-with-claude/thinking) Claude
+// Sonnet 5.5'te thinking "disabled" ile hiç kapatılamaz (400 döner); en düşük ayar "between_tools" —
+// modelin yanıttan önce hiç düşünmediği en hızlı mod (yalnızca effort "high" ve altında geçerli). Daha
+// derin düşünmek için "adaptive" thinking + daha yüksek effort gerekir.
+// Kolay/günlük/kısa mesajlarda en hızlı mod (FAST) kullanılır. Kod, hesap, çok adımlı analiz ya da uzun/
+// karmaşık istek sezilirse (LONG_HINT — aynı sezgi max_tokens için de kullanılıyor) daha derin düşünmeye
+// (DEEP: adaptive thinking + effort "high") geçilir.
+// Kriz/güvenlik mesajlarında gecikme olmasın diye bu yükseltme hiç uygulanmaz: CRISIS_HINT eşleşirse mesaj
+// ne kadar uzun ya da karmaşık görünse de her zaman FAST kullanılır — yavaş yol yok. (Güvenlik davranışının
+// kendisi sistem promptunda olduğu için dile bağlı değildir; bu sezgi yalnızca gecikmeyi önler.)
+const FAST = { thinking: { type: "between_tools" }, effort: "medium" };
+const DEEP = { thinking: { type: "adaptive" }, effort: "high" };
+const CRISIS_HINT = /intihar|kendime? zarar ver|kendimi öldür|yaşamak istemiyorum|ölmek istiyorum|canıma kıy|suicide|kill myself|self[- ]harm|end my life|want to die|hurt myself/i;
+const LONG_HINT = /```|kod|code|script|fonksiyon|function|class |def |sql|html|css|javascript|typescript|python|java|regex|algoritma|algorithm|svg|json|program|hesapla|hesap|calculate|detaylı|ayrıntılı|uzun|adım adım|step by step|in detail|detailed|essay|makale|analiz|analysis|コード|代码|código|Programm/i;
+function pickThinking(messages) {
+  const last = messages[messages.length - 1].content;
+  if (CRISIS_HINT.test(last)) return FAST;
+  return last.length > 1200 || LONG_HINT.test(last) ? DEEP : FAST;
+}
+
+// Sohbet cevapları kısa: 700 token tavanı. Kod ya da uzun/ayrıntılı istek sezilirse (DEEP ile aynı sezgi)
+// tavan yükselir. Bu yalnızca bir üst sınır; model daha kısa yazarsa ücret de o kadardır, yanlış pozitif
+// zararsızdır.
 const MAX_TOKENS_CHAT = 700;
 const MAX_TOKENS_LONG = 3000;
-const LONG_HINT = /```|kod|code|script|fonksiyon|function|class |def |sql|html|css|javascript|typescript|python|java|regex|algoritma|algorithm|svg|json|program|detaylı|ayrıntılı|uzun|adım adım|step by step|in detail|detailed|essay|makale|コード|代码|código|Programm/i;
 function pickMaxTokens(messages) {
   const last = messages[messages.length - 1].content;
   return last.length > 1200 || LONG_HINT.test(last) ? MAX_TOKENS_LONG : MAX_TOKENS_CHAT;
@@ -179,7 +194,7 @@ function sse(res, obj) {
 }
 
 // Bir model çağrısını akıtır; kullanıcıya en az bir harf gitmeden reddedilirse {refused:true} döner.
-async function streamOnce({ res, model, thinking, system, messages, maxTokens, t, state }) {
+async function streamOnce({ res, model, thinking, effort, system, messages, maxTokens, t, state }) {
   const params = {
     model,
     max_tokens: maxTokens,
@@ -187,7 +202,7 @@ async function streamOnce({ res, model, thinking, system, messages, maxTokens, t
     system,
     messages,
   };
-  if (model === MODEL) params.output_config = { effort: EFFORT };
+  if (effort) params.output_config = { effort };
   const stream = anthropic.messages.stream(params, { timeout: 50_000 });
   state.abort = () => stream.abort();
 
@@ -250,6 +265,8 @@ export default async function handler(req, res) {
   log.turns = messages.length;
   const system = systemBlocks(SYSTEM_PROMPTS[persona], lang);
   const maxTokens = pickMaxTokens(messages);
+  const { thinking, effort } = pickThinking(messages);
+  log.thinking = thinking.type;
   // Önbellek: sistem promptu (yukarıda) + son kullanıcı mesajı. Sonraki turda konuşmanın bu noktaya kadarki
   // kısmı önbellekten okunur; böylece uzun sohbetlerde ilk tokene kadar geçen süre ve maliyet düşer.
   const apiMessages = messages.map((m, i) =>
@@ -276,7 +293,7 @@ export default async function handler(req, res) {
   let msg;
   try {
     t.anthropicStart = Date.now();
-    let r = await streamOnce({ res, model, thinking: THINKING, system, messages: apiMessages, maxTokens, t, state });
+    let r = await streamOnce({ res, model, thinking, effort, system, messages: apiMessages, maxTokens, t, state });
     if (r.refused) {
       log.refusal = r.msg.stop_details?.category || "unknown";
       model = FALLBACK_MODEL;
