@@ -1522,11 +1522,19 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
   let persona=null,api=[],busy=false,muted=true;
 
   /* ---- API ---- */
-  async function ask(p,history,onDelta){
+  // oturum açıksa Supabase access token'ı döner (api/chat.js Authorization header'ından okur); yoksa null —
+  // o zaman eskisi gibi anonim senkron-kod akışı kullanılır. Giriş yapmış kullanıcı için sohbet artık
+  // Postgres'te (sohbetler/mesajlar) saklanır, Redis'teki senkron-kod geçmişi hiç dokunulmaz.
+  async function authToken(){try{const sb=await window.supabaseReady;if(!sb)return null;const{data}=await sb.auth.getSession();return data?.session?.access_token||null;}catch(e){return null;}}
+  async function ask(p,history,onDelta,sohbetId){
     // Karakter promptları sunucuda (api/chat.js); tarayıcı sadece hangi karakter olduğunu gönderir
     // sunucu en fazla 40 mesaj kabul eder; son kısmı gönder, kullanıcı mesajıyla başlasın
     const msgs=history.slice(-40);while(msgs.length&&msgs[0].role!=="user")msgs.shift();
-    const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({persona:p,messages:msgs,code:p==="mirror"?undefined:syncCode(true),lang:i18n.lang()})});
+    const token=await authToken(),headers={"Content-Type":"application/json"};
+    const body={persona:p,messages:msgs,lang:i18n.lang()};
+    if(token){headers.Authorization="Bearer "+token;if(sohbetId)body.sohbetId=sohbetId;}
+    else if(p!=="mirror")body.code=syncCode(true);
+    const r=await fetch("/api/chat",{method:"POST",headers,body:JSON.stringify(body)});
     if(!r.ok){const e=new Error("HTTP "+r.status);e.status=r.status;throw e;}
     // cevap akışla (SSE) gelir: onDelta(o ana kadarki metin) her parçada çağrılır; "done" tam ve temiz metni verir
     const reader=r.body.getReader(),dec=new TextDecoder();let buf="",text="",lang=null;
@@ -1543,7 +1551,7 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
         else if(ev.type==="done"){
           // sunucu geçmişi kaydederken bağlantıyı kısa süre açık tutar; kalanını arka planda boşalt
           (async()=>{try{while(!(await reader.read()).done);}catch(e){}})();
-          return {text:ev.text,lang:ev.lang||lang};
+          return {text:ev.text,lang:ev.lang||lang,sohbetId:ev.sohbetId};
         }
       }
     }
@@ -1599,7 +1607,9 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
   function saveChats(list){list.sort((a,b)=>b.ts-a.ts);store(K_CHATS,list.slice(0,MAX_CHATS));}
   (function migrate(){const old=load(K_CHAT_OLD);if(old&&NAMES[old.persona]&&Array.isArray(old.api)&&old.api.length){const l=loadChats();if(!l.length)saveChats([{id:newId(),persona:old.persona,api:old.api,ts:old.ts||Date.now()}]);}try{localStorage.removeItem(K_CHAT_OLD);}catch(e){}})();
   // keep the tail of the conversation; the API needs it to start with a user turn
-  function saveChat(id,p,hist){const h=hist.slice(-40);while(h.length&&h[0].role!=="user")h.shift();if(!h.length)return;const all=loadChats(),prev=all.find(c=>c.id===id),l=all.filter(c=>c.id!==id);const conv={id,persona:p,api:h,ts:Date.now()};if(prev&&prev.title)conv.title=prev.title;l.push(conv);saveChats(l);}
+  // sohbetId: oturum açık kullanıcı için bu konuşmanın Postgres'teki satır id'si (api/chat.js "done" olayıyla
+  // döner); verilmezse önceki değeri korunur — anonim kullanıcıda hep undefined kalır, hiçbir şey değişmez.
+  function saveChat(id,p,hist,sohbetId){const h=hist.slice(-40);while(h.length&&h[0].role!=="user")h.shift();if(!h.length)return;const all=loadChats(),prev=all.find(c=>c.id===id),l=all.filter(c=>c.id!==id);const conv={id,persona:p,api:h,ts:Date.now()};if(prev&&prev.title)conv.title=prev.title;const sid=sohbetId||(prev&&prev.sohbetId);if(sid)conv.sohbetId=sid;l.push(conv);saveChats(l);}
   function lastChat(){return loadChats()[0]||null;}
   function chatsFor(p){return loadChats().filter(c=>c.persona===p);}
 
@@ -1667,14 +1677,15 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
   async function reply(p,hist,id){
     busy=true;sendBtn.disabled=true;const think=addThinking();let bubble=null;
     const here=()=>api===hist;
+    const prevSohbetId=loadChats().find(c=>c.id===id)?.sohbetId;
     try{
-      const {text:out,lang:replyLang}=await ask(p,hist,partial=>{
+      const {text:out,lang:replyLang,sohbetId}=await ask(p,hist,partial=>{
         if(!here())return;
         if(!bubble){think.remove();bubble=addBubble("bot","");}
         const atEnd=messages.scrollHeight-messages.scrollTop-messages.clientHeight<60;
         bubble.textContent=partial;if(atEnd)messages.scrollTop=messages.scrollHeight;
-      });
-      think.remove();hist.push({role:"assistant",content:out});saveChat(id,p,hist);
+      },prevSohbetId);
+      think.remove();hist.push({role:"assistant",content:out});saveChat(id,p,hist,sohbetId);
       if(here()){if(!bubble)bubble=addBubble("bot","");bubble.textContent=out;messages.scrollTop=messages.scrollHeight;speak(out,p,replyLang);}
     }
     catch(e){

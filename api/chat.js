@@ -4,6 +4,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { rejectIfLimited, validCode, saveHistory, HISTORY_PERSONAS } from "./_redis.js";
+import { userClient, saveTurnPg } from "./_supabase.js";
 
 // Karakter promptları burada, sunucuda durur: tarayıcı sadece persona adını gönderir,
 // dışarıdan gelen bir sistem promptu kabul edilmez.
@@ -267,7 +268,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { persona, messages, code, lang } = req.body || {};
+  const { persona, messages, code, sohbetId, lang } = req.body || {};
   if (!SYSTEM_PROMPTS[persona]) return res.status(400).json({ error: "Geçersiz persona" });
   if (!Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES) {
     return res.status(400).json({ error: "messages gerekli" });
@@ -279,6 +280,9 @@ export default async function handler(req, res) {
 
   log.persona = persona;
   log.turns = messages.length;
+  // Supabase'in auth.getUser() çağrısı ağ üzerinden doğrular; Anthropic isteğiyle PARALEL başlatılır ki
+  // oturum kontrolü ilk token süresine eklenmesin — sonucu ancak kayıt kararı verirken bekleriz (aşağıda).
+  const authPromise = userClient(req);
   const system = systemBlocks(SYSTEM_PROMPTS[persona], lang);
   const maxTokens = pickMaxTokens(messages);
   const { thinking, effort } = pickThinking(messages);
@@ -334,18 +338,41 @@ export default async function handler(req, res) {
   // dil etiketinden kısa bir cevap geldiyse (40 harften az, "]" yok) tamponda kalmış olabilir
   const text = stripTags(state.raw.replace(LANG_TAG, (_, l) => { state.lang ??= l.toLowerCase(); return ""; })).trim();
   const truncated = msg.stop_reason === "max_tokens";
-  if (text) sse(res, { type: "done", text, lang: state.lang, truncated });
+
+  // Oturum (Supabase) varsa geçmiş Postgres'e, yoksa (anonim) eskisi gibi Redis'e (senkron kod) kaydedilir —
+  // ikisi birbirinin YERİNE geçmez, hangisi kullanılacağı bu istekte kimliğin olup olmadığına bakılarak seçilir.
+  // Mirror ikisinde de yok (HISTORY_PERSONAS'ta değil): hiçbir koşulda saklanmaz.
+  const auth = await authPromise;
+  const usePg = Boolean(text && auth && HISTORY_PERSONAS.includes(persona));
+  let sohbetIdOut = typeof sohbetId === "string" && sohbetId ? sohbetId : null;
+  let saved = false;
+  let store = null;
+  t.saveStart = Date.now();
+
+  if (usePg) {
+    // Postgres: "done" olayı yeni oluşan sohbetId'yi istemciye taşır, bu yüzden kayıt BURADA, "done"dan
+    // ÖNCE biter — Redis'teki "kayıt cevabı geciktirmez" davranışının aksine, çünkü istemcinin öğrenmesi
+    // gereken yeni bir bilgi (sohbetId) var; sohbetId yoksa istemci bir sonraki turda yeni bir sohbet açar.
+    try {
+      sohbetIdOut = await saveTurnPg(auth, persona, sohbetIdOut, messages[messages.length - 1].content, text);
+      saved = true;
+      store = "postgres";
+    } catch (e) {
+      console.error(JSON.stringify({ ...log, evt: "history_save_error", store: "postgres", message: e.message }));
+    }
+  }
+
+  if (text) sse(res, { type: "done", text, lang: state.lang, truncated, sohbetId: usePg ? sohbetIdOut : undefined });
   else sse(res, { type: "error", code: msg.stop_reason === "refusal" ? "refusal" : "empty" });
 
-  // geçmiş kaydı cevabın gösterilmesini beklemez: "done" gönderildikten sonra yapılır
-  let saved = false;
-  t.saveStart = Date.now();
-  if (text && validCode(code) && HISTORY_PERSONAS.includes(persona)) {
+  // geçmiş kaydı (Redis, anonim) cevabın gösterilmesini beklemez: "done" gönderildikten sonra yapılır
+  if (!usePg && text && validCode(code) && HISTORY_PERSONAS.includes(persona)) {
     try {
       await saveHistory(code, persona, [...messages.map((m) => ({ role: m.role, content: m.content })), { role: "assistant", content: text }]);
       saved = true;
+      store = "redis";
     } catch (e) {
-      console.error(JSON.stringify({ ...log, evt: "history_save_error", message: e.message }));
+      console.error(JSON.stringify({ ...log, evt: "history_save_error", store: "redis", message: e.message }));
     }
   }
   t.saveEnd = Date.now();
@@ -353,7 +380,7 @@ export default async function handler(req, res) {
 
   const u = msg.usage || {};
   console.log(JSON.stringify({
-    ...log, status: 200, model, stop: msg.stop_reason, maxTokens, truncated, saved, clientGone: state.clientGone,
+    ...log, status: 200, model, stop: msg.stop_reason, maxTokens, truncated, saved, store, auth: Boolean(auth), clientGone: state.clientGone,
     usage: { in: u.input_tokens, out: u.output_tokens, cacheRead: u.cache_read_input_tokens, cacheWrite: u.cache_creation_input_tokens },
     ms: {
       redis_ratelimit: t.rlEnd - t.rlStart,

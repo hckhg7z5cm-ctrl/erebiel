@@ -25,6 +25,35 @@ export function bearerToken(req) {
 // token yoksa ya da geçersizse null döner. Geçerliyse { client, user } döner: client, RLS'nin otomatik
 // uygulanması için bu kullanıcının token'ıyla kurulmuştur — client.from(...) sorguları yalnızca auth.uid()'in
 // kendi satırlarını görür/değiştirir.
+// Giriş yapmış kullanıcı için bir sohbet turunu (kullanıcı mesajı + asistan cevabı) Postgres'e kaydeder.
+// Anonim akıştaki Redis saveHistory'nin YERİNE geçmez — bu sadece oturumu olan istekler için çağrılır.
+// sohbetId verilmemişse yeni bir sohbetler satırı açılır (başlık, kullanıcının ilk mesajından kısaca).
+// RLS, client'ın bu kullanıcının kendi token'ıyla kurulmuş olmasından otomatik uygulanır; user_id ayrıca
+// açıkça yazılır (savunma derinliği — RLS'nin WITH CHECK'i zaten yanlış user_id'yi reddeder).
+// Hata durumunda sessizce null döner: sohbet kaydı başarısız olsa da kullanıcı cevabı görür (çağıran taraf
+// bunu try/catch ile best-effort olarak ele alır, Redis'teki saveHistory davranışıyla aynı felsefe).
+export async function saveTurnPg({ client, user }, persona, sohbetId, userContent, assistantContent) {
+  let id = sohbetId;
+  if (!id) {
+    const title = userContent.slice(0, 60);
+    const { data, error } = await client
+      .from("sohbetler")
+      .insert({ user_id: user.id, persona, title })
+      .select("id")
+      .single();
+    if (error) throw error;
+    id = data.id;
+  }
+  const { error: msgError } = await client.from("mesajlar").insert([
+    { sohbet_id: id, user_id: user.id, role: "user", content: userContent },
+    { sohbet_id: id, user_id: user.id, role: "assistant", content: assistantContent },
+  ]);
+  if (msgError) throw msgError;
+  // sohbetin "en son güncellenen" sırası için; RLS update_own politikası zaten auth.uid() = user_id ister
+  await client.from("sohbetler").update({ updated_at: new Date().toISOString() }).eq("id", id);
+  return id;
+}
+
 export async function userClient(req) {
   const token = bearerToken(req);
   if (!token || !SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
