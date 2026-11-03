@@ -352,6 +352,11 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   .set-input::placeholder{color:var(--silver);opacity:.45}
   .set-hint{font-size:.64rem;line-height:1.6;letter-spacing:.06em;color:var(--silver);opacity:.7;text-align:center}
   .set-note{min-height:1.3em;font-size:.68rem;letter-spacing:.1em;color:var(--accent);text-align:center}
+  .set-note.is-error{color:#e07a5f}
+  #auth .set-rows a{color:var(--accent);text-decoration:none}
+  #auth .set-rows a:hover,#auth .set-rows a:focus-visible{text-decoration:underline}
+  #auth form .set-row{justify-content:center}
+  #auth .set-input{width:100%;max-width:18rem}
 
   /* ---------- NAVIGATION: icon rail (desktop) · tab bar (mobile) ---------- */
   .nav-item{position:relative;display:grid;place-items:center;width:40px;height:40px;background:none;border:none;border-radius:10px;cursor:pointer;padding:0;
@@ -1113,6 +1118,45 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     </div>
   </section>
 
+  <!-- auth: Supabase Auth ile hesap sistemi (kayıt/giriş/çıkış/şifre sıfırlama). Anonim senkron-kod akışının
+       YANINDA çalışır, onu değiştirmez — "settings" sayfasındaki sync kod bölümü dokunulmadan kalır. -->
+  <section class="page" id="auth" hidden>
+    <button class="page-back" data-close data-i18n-attr="aria-label:aria.back">‹</button>
+    <p class="page-title" id="authTitle"></p>
+    <div class="set-rows">
+      <div id="authSignedIn" hidden>
+        <p class="set-hint" id="authSignedInAs"></p>
+        <div class="set-row"><span></span><div class="seg"><button id="authSignOut" data-i18n="auth.signOut"></button></div></div>
+      </div>
+
+      <form id="authSignin">
+        <div class="set-row"><input class="set-input" type="email" id="siEmail" autocomplete="email" required data-i18n-attr="placeholder:auth.email;aria-label:auth.email"></div>
+        <div class="set-row"><input class="set-input" type="password" id="siPassword" autocomplete="current-password" required data-i18n-attr="placeholder:auth.password;aria-label:auth.password"></div>
+        <div class="set-row"><span></span><div class="seg"><button type="submit" id="siSubmit" data-i18n="auth.submit.signin"></button></div></div>
+        <p class="set-hint"><a href="#" id="toForgot" data-i18n="auth.switch.toForgot"></a></p>
+        <p class="set-hint"><a href="#" id="toSignup" data-i18n="auth.switch.toSignup"></a></p>
+      </form>
+
+      <form id="authSignup" hidden>
+        <div class="set-row"><input class="set-input" type="email" id="suEmail" autocomplete="email" required data-i18n-attr="placeholder:auth.email;aria-label:auth.email"></div>
+        <div class="set-row"><input class="set-input" type="password" id="suPassword" autocomplete="new-password" required minlength="8" data-i18n-attr="placeholder:auth.password;aria-label:auth.password"></div>
+        <div class="set-row"><input class="set-input" type="text" id="suUsername" dir="ltr" autocomplete="off" spellcheck="false" maxlength="20" required data-i18n-attr="placeholder:auth.username;aria-label:auth.username"></div>
+        <div class="set-row"><input class="set-input" type="number" id="suBirthYear" inputmode="numeric" required data-i18n-attr="placeholder:auth.birthYear;aria-label:auth.birthYear"></div>
+        <div class="set-row"><span></span><div class="seg"><button type="submit" id="suSubmit" data-i18n="auth.submit.signup"></button></div></div>
+        <p class="set-hint"><a href="#" id="toSignin1" data-i18n="auth.switch.toSignin"></a></p>
+      </form>
+
+      <form id="authForgot" hidden>
+        <div class="set-row"><input class="set-input" type="email" id="fgEmail" autocomplete="email" required data-i18n-attr="placeholder:auth.email;aria-label:auth.email"></div>
+        <div class="set-row"><span></span><div class="seg"><button type="submit" id="fgSubmit" data-i18n="auth.submit.forgot"></button></div></div>
+        <p class="set-hint"><a href="#" id="toSignin2" data-i18n="auth.switch.toSignin"></a></p>
+      </form>
+
+      <p class="set-note" id="authNote" aria-live="polite"></p>
+      <p class="set-hint" id="authHint" data-i18n="auth.hint"></p>
+    </div>
+  </section>
+
   <!-- profile: a backdrop (colour or photo) that reflects downward; the portrait floats in it, no frames or rules -->
   <section class="page page-scroll" id="profile" hidden>
     <div class="pf-cover" id="pfCover" role="img" data-i18n-attr="aria-label:profile.coverPhoto"></div>
@@ -1437,6 +1481,29 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   </div>
 
 <script>
+// aşağıdaki modül script'i Supabase istemcisini kurana kadar bu promise bekler; modül script'ler ertelenmiş
+// (deferred) çalıştığı için, bu klasik script'teki kod (aşağıda) senkron olarak önce çalışır ama promise'in
+// kendisi burada hazır olur — "window.supabaseReady is not defined" hatası olmaz.
+window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
+</script>
+<script type="module">
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+  (async () => {
+    let client = null;
+    try {
+      const r = await fetch("/api/config");
+      if (!r.ok) throw new Error("config " + r.status);
+      const { supabaseUrl, supabaseAnonKey } = await r.json();
+      client = createClient(supabaseUrl, supabaseAnonKey);
+    } catch (e) {
+      console.error("supabase config yüklenemedi:", e);
+    } finally {
+      window.supabase = client;
+      window.__resolveSupabase(client);
+    }
+  })();
+</script>
+<script>
 (function(){
   /* ============ BRAINS ============ */
   const t=i18n.t;
@@ -1728,7 +1795,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   document.querySelectorAll("[data-icon]").forEach(el=>el.insertAdjacentHTML("afterbegin",'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+ICONS[el.getAttribute("data-icon")]+'</svg>'));
 
   const soonEl=$("soon"),settingsEl=$("settings"),moreSheet=$("moreSheet"),moreBtn=document.querySelector('.tabbar [data-nav="more"]');
-  const profileEl=$("profile"),historyEl=$("history"),premiumEl=$("premium"),charactersEl=$("characters");
+  const profileEl=$("profile"),historyEl=$("history"),premiumEl=$("premium"),charactersEl=$("characters"),authEl=$("auth");
   const PAGES=[...document.querySelectorAll(".page")];
   let soonKey=null;
   const IN_MORE=["profile","premium","create","settings","signin"];
@@ -1758,6 +1825,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     else if(k==="profile"){renderProfile();openPage(profileEl);}
     else if(k==="premium")openPage(premiumEl);
     else if(k==="settings"){syncSettings();openPage(settingsEl);}
+    else if(k==="signin"){renderAuth();openPage(authEl);}
     else openSoon(k);
     setActive(k);
   }
@@ -1779,6 +1847,100 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   // the Premium title is the English word in Latin-script languages; mark it so Turkish casing doesn't turn it into "PREMİUM"
   function markPremiumTitle(){const el=$("premiumTitle");if(/^[a-z]+$/i.test(el.textContent))el.lang="en";else el.removeAttribute("lang");}
   markPremiumTitle();document.addEventListener("i18n:change",markPremiumTitle);
+
+  /* ---- AUTH (Supabase) ----
+     Anonim senkron-kod/Redis akışının YANINDA çalışır, onu değiştirmez. Supabase istemcisi ayrı bir
+     <script type="module"> tarafından kurulur (CDN'den @supabase/supabase-js); burada sadece bekleniyor. */
+  const MIN_AGE=18; // tek sabit: DB'deki CHECK constraint'le (profiles_min_age) senkron tutulmalı
+  async function getSupabase(){return await window.supabaseReady;}
+  let currentUser=null,authBusy=false;
+  function authNote(msg,isError){const el=$("authNote");el.textContent=msg||"";el.classList.toggle("is-error",!!isError);}
+  function authMode(mode){
+    authNote("");
+    $("authSignedIn").hidden=mode!=="signedin";
+    $("authSignin").hidden=mode!=="signin";
+    $("authSignup").hidden=mode!=="signup";
+    $("authForgot").hidden=mode!=="forgot";
+    $("authHint").hidden=mode==="signedin";
+    $("authTitle").textContent=t(mode==="signedin"?"auth.title.signedin":"auth.title."+mode);
+  }
+  function renderAuth(){authMode(currentUser?"signedin":"signin");if(currentUser)$("authSignedInAs").textContent=t("auth.signedInAs",{u:currentUser.email||""});}
+  $("toSignup").addEventListener("click",e=>{e.preventDefault();authMode("signup");});
+  $("toSignin1").addEventListener("click",e=>{e.preventDefault();authMode("signin");});
+  $("toSignin2").addEventListener("click",e=>{e.preventDefault();authMode("signin");});
+  $("toForgot").addEventListener("click",e=>{e.preventDefault();authMode("forgot");});
+  // kullanıcı adı önerisi: e-postanın @ öncesi + rastgele 2 basamak; DB'deki ^[a-z0-9_]{3,20}$ ile aynı kural
+  function suggestUsername(email){
+    const base=String(email||"").split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g,"").slice(0,16)||"kullanici";
+    return (base.length<3?base.padEnd(3,"0"):base)+Math.floor(10+Math.random()*90);
+  }
+  $("suEmail").addEventListener("blur",()=>{if(!$("suUsername").value)$("suUsername").value=suggestUsername($("suEmail").value);});
+  // çift gönderim koruması: authBusy açıkken her üç form da kilitli
+  function setAuthBusy(b){authBusy=b;["siSubmit","suSubmit","fgSubmit"].forEach(id=>$(id).disabled=b);if(b)authNote(t("auth.loading"));}
+  function authErrorMessage(e){
+    const m=String(e&&e.message||"");
+    if(/username/i.test(m)&&/unique|duplicate/i.test(m))return t("auth.err.usernameTaken");
+    if(/profiles_min_age/i.test(m))return t("auth.err.underage",{age:MIN_AGE});
+    return m||t("auth.err.generic");
+  }
+  $("authSignin").addEventListener("submit",async e=>{
+    e.preventDefault();if(authBusy)return;
+    const email=$("siEmail").value.trim(),password=$("siPassword").value;
+    if(!email||!password){authNote(t("auth.err.required"),true);return;}
+    setAuthBusy(true);
+    try{
+      const sb=await getSupabase();if(!sb)throw new Error(t("auth.err.generic"));
+      const{error}=await sb.auth.signInWithPassword({email,password});
+      if(error)throw error;
+      authNote("");
+    }catch(err){authNote(authErrorMessage(err),true);}
+    finally{setAuthBusy(false);}
+  });
+  $("authSignup").addEventListener("submit",async e=>{
+    e.preventDefault();if(authBusy)return;
+    const email=$("suEmail").value.trim(),password=$("suPassword").value;
+    const username=$("suUsername").value.trim().toLowerCase(),birthYear=parseInt($("suBirthYear").value,10);
+    if(!email||!password||!username||!birthYear){authNote(t("auth.err.required"),true);return;}
+    if(!/^[a-z0-9_]{3,20}$/.test(username)){authNote(t("auth.err.usernameInvalid"),true);return;}
+    // istemci tarafı MIN_AGE ön kontrolü: hızlı geri bildirim. Asıl zorlayan yer DB'deki CHECK constraint'tir,
+    // bu satır atlatılsa (DevTools'tan) bile signUp sunucuda başarısız olur.
+    if(birthYear>new Date().getFullYear()-MIN_AGE){authNote(t("auth.err.underage",{age:MIN_AGE}),true);return;}
+    setAuthBusy(true);
+    try{
+      const sb=await getSupabase();if(!sb)throw new Error(t("auth.err.generic"));
+      const{data:avail}=await sb.rpc("is_username_available",{candidate:username});
+      if(avail===false){authNote(t("auth.err.usernameTaken"),true);setAuthBusy(false);return;}
+      const{error}=await sb.auth.signUp({email,password,options:{data:{username,birth_year:birthYear}}});
+      if(error)throw error;
+      authMode("signin");authNote(t("auth.confirmSent"));
+    }catch(err){authNote(authErrorMessage(err),true);}
+    finally{setAuthBusy(false);}
+  });
+  $("authForgot").addEventListener("submit",async e=>{
+    e.preventDefault();if(authBusy)return;
+    const email=$("fgEmail").value.trim();
+    if(!email){authNote(t("auth.err.required"),true);return;}
+    setAuthBusy(true);
+    try{
+      const sb=await getSupabase();if(!sb)throw new Error(t("auth.err.generic"));
+      await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+      // Supabase, hesabı olmayan bir e-posta için de aynı başarı cevabını döner (e-posta numaralandırmasını
+      // önlemek için) — o yüzden burada hata/başarı ayrımı yapmıyoruz, her durumda aynı nötr mesajı gösteriyoruz.
+      authMode("signin");authNote(t("auth.resetSent"));
+    }catch(err){authNote(authErrorMessage(err),true);}
+    finally{setAuthBusy(false);}
+  });
+  $("authSignOut").addEventListener("click",async()=>{
+    if(authBusy)return;setAuthBusy(true);
+    try{const sb=await getSupabase();if(sb)await sb.auth.signOut();}catch(e){}
+    finally{setAuthBusy(false);}
+  });
+  (async()=>{
+    const sb=await getSupabase();if(!sb)return;
+    const{data}=await sb.auth.getSession();currentUser=data?.session?.user||null;
+    if(!authEl.hidden)renderAuth();
+    sb.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;if(!authEl.hidden)renderAuth();});
+  })();
 
   /* ---- TOAST ---- */
   const toastEl=$("toast");let toastTimer=null;
