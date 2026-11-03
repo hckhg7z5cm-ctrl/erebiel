@@ -71,6 +71,7 @@ i18n.register("it", {
   "err.net.archon": "La connessione si è interrotta. L'oscurità non parla sempre. Riprova.",
   "err.net.multivac": "Non sono riuscito a collegarmi. Aspetta un momento e riprova.",
   "chat.retry": "Riprova",
+  "err.maintenance": "La chat è in manutenzione in questo momento. Torneremo presto.",
   "mirror.dark": "Lo specchio è al buio — l'accesso alla fotocamera potrebbe essere bloccato. Il tuo riflesso appare su un sito sicuro (https).",
   "mirror.fallback": [
     "Dico a tutti che sto bene. Non è vero.",

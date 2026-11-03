@@ -71,6 +71,7 @@ i18n.register("pl", {
   "err.net.archon": "Połączenie zostało przerwane. Ciemność nie zawsze mówi. Spróbuj ponownie.",
   "err.net.multivac": "Nie udało mi się teraz połączyć. Poczekaj chwilę i spróbuj ponownie.",
   "chat.retry": "Spróbuj ponownie",
+  "err.maintenance": "Czat jest teraz w trakcie konserwacji. Wracamy wkrótce.",
   "mirror.dark": "Lustro jest ciemne — dostęp do kamery może być zablokowany. Twoje odbicie pojawi się na bezpiecznej stronie (https).",
   "mirror.fallback": [
     "Mówię wszystkim, że wszystko w porządku. To nieprawda.",

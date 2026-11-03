@@ -71,6 +71,7 @@ i18n.register("zh-CN", {
   "err.net.archon": "连接断开了。黑暗并不总是开口。再试一次。",
   "err.net.multivac": "暂时无法连接。请稍等片刻再试。",
   "chat.retry": "重试",
+  "err.maintenance": "聊天现在正在维护中，我们很快回来。",
   "mirror.dark": "镜子一片黑暗 — 摄像头权限可能被阻止了。在安全的（https）网站上，你的倒影才会出现。",
   "mirror.fallback": [
     "我跟所有人说我很好。其实不是。",

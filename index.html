@@ -1584,7 +1584,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     addBubble("bot",greet(p));
     if(conv)conv.api.forEach(m=>addBubble(m.role,m.content));
     // son mesaj cevapsız kalmış bir kullanıcı mesajıysa (akış kopmuş, sayfa kapanmış) yeniden denemeyi sun
-    if(conv&&api.length&&api[api.length-1].role==="user")addRetry(p,api,convId,false,null);
+    if(conv&&api.length&&api[api.length-1].role==="user")addRetry(p,api,convId,"net",null);
     threshold.style.display="none";inviteEl.hidden=true;brandBtn.hidden=true;chat.hidden=false;requestAnimationFrame(()=>chat.classList.add("show"));
     setTimeout(()=>input.focus(),80);if(!conv)speak(greet(p),p,i18n.lang());
   }
@@ -1610,11 +1610,20 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
       think.remove();hist.push({role:"assistant",content:out});saveChat(id,p,hist);
       if(here()){if(!bubble)bubble=addBubble("bot","");bubble.textContent=out;messages.scrollTop=messages.scrollHeight;speak(out,p,replyLang);}
     }
-    catch(e){think.remove();if(bubble)bubble.classList.add("partial");if(here())addRetry(p,hist,id,e.status===429||e.code==="busy",bubble);console.error(e);}
+    catch(e){
+      think.remove();if(bubble)bubble.classList.add("partial");
+      // "maintenance": kredi/bakiye/limit bakım modu, nötr mesaj; "rate": hız sınırı; "net": diğer her şey
+      // (akış kopması dahil) — karakterin sesiyle ama "bağlantı koptu" yerine bu sırada hiçbir koşulda
+      // gösterilmeyen tek metin "maintenance" koduna bağlı.
+      const kind=e.code==="maintenance"?"maintenance":e.status===429||e.code==="busy"?"rate":"net";
+      if(here())addRetry(p,hist,id,kind,bubble);
+      console.error(e);
+    }
     finally{busy=false;sendBtn.disabled=false;input.focus();}
   }
-  function addRetry(p,hist,id,rate,partial){
-    const d=addBubble("bot",t((rate?"err.rate.":"err.net.")+(p==="archon"?"archon":"multivac")));d.classList.add("err");
+  function addRetry(p,hist,id,kind,partial){
+    const msg=kind==="maintenance"?t("err.maintenance"):t((kind==="rate"?"err.rate.":"err.net.")+(p==="archon"?"archon":"multivac"));
+    const d=addBubble("bot",msg);d.classList.add("err");
     const b=document.createElement("button");b.type="button";b.className="retry";b.textContent="↻ "+t("chat.retry");
     b.addEventListener("click",()=>{if(busy||api!==hist)return;d.remove();if(partial)partial.remove();reply(p,hist,id);});
     d.appendChild(document.createElement("br"));d.appendChild(b);messages.scrollTop=messages.scrollHeight;

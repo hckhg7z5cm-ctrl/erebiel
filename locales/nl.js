@@ -71,6 +71,7 @@ i18n.register("nl", {
   "err.net.archon": "De verbinding is weggevallen. Het donker spreekt niet altijd. Probeer het opnieuw.",
   "err.net.multivac": "Ik kon nu geen verbinding maken. Wacht even en probeer het dan opnieuw.",
   "chat.retry": "Opnieuw proberen",
+  "err.maintenance": "De chat is nu in onderhoud. We zijn snel terug.",
   "mirror.dark": "De spiegel is donker — misschien is de toegang tot de camera geblokkeerd. Je spiegelbeeld verschijnt op een beveiligde (https) site.",
   "mirror.fallback": [
     "Ik zeg tegen iedereen dat het goed gaat. Dat is niet zo.",

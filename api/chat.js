@@ -194,6 +194,21 @@ function sse(res, obj) {
   if (!res.writableEnded) res.write(`data: ${JSON.stringify(obj)}\n\n`);
 }
 
+// ---- Bakım modu ----
+// Anthropic hesabının kredisi/bakiyesi biterse ya da kullanım katmanının harcama tavanına çarpılırsa,
+// kullanıcıya gerçek hatayı (ya da "bağlantı koptu" metnini) göstermeyiz — sadece "bakımda" mesajı.
+// Gerçek sebep (status, type, request-id) sunucu loguna yazılır (ms:aşağıda, chat_error logunda).
+// Resmi hata tablosuna göre (platform.claude.com/docs/en/api/errors):
+//  - 402 billing_error: kredi/bakiye/ödeme sorunu.
+//  - 429 rate_limit_error ama retry-after başlığı YOK: kullanım katmanının aylık harcama tavanı —
+//    bu, dakikalık hız sınırından farklıdır (o da 429 ama retry-after taşır, "bir an bekle" ile çözülür);
+//    tavan dolunca erişim geri gelene kadar düzelmez, o yüzden bakım mesajı daha doğrudur.
+function isMaintenance(e) {
+  if (e?.status === 402) return true;
+  if (e?.status === 429 && !e?.headers?.get?.("retry-after")) return true;
+  return false;
+}
+
 // Bir model çağrısını akıtır; kullanıcıya en az bir harf gitmeden reddedilirse {refused:true} döner.
 async function streamOnce({ res, model, thinking, effort, system, messages, maxTokens, t, state }) {
   const params = {
@@ -305,13 +320,14 @@ export default async function handler(req, res) {
     t.anthropicEnd = Date.now();
   } catch (e) {
     const phase = state.clientGone ? "client_disconnected" : state.sent ? "mid_stream" : t.firstToken ? "before_text" : t.headers ? "after_headers" : "connect";
+    const maintenance = isMaintenance(e);
     console.error(JSON.stringify({
-      ...log, evt: "chat_error", model, phase,
-      error: e?.constructor?.name || "Error", status: e?.status ?? null, type: e?.error?.error?.type ?? null,
+      ...log, evt: "chat_error", model, phase, maintenance,
+      error: e?.constructor?.name || "Error", status: e?.status ?? null, type: e?.type ?? e?.error?.error?.type ?? null,
       anthropicRequestId: e?.requestID ?? null, message: String(e?.message || e).slice(0, 300),
       ms: { redis_ratelimit: t.rlEnd - t.rlStart, elapsed: Date.now() - t.start },
     }));
-    sse(res, { type: "error", code: e?.status === 429 || e?.status === 529 ? "busy" : "failed" });
+    sse(res, { type: "error", code: maintenance ? "maintenance" : e?.status === 429 || e?.status === 529 ? "busy" : "failed" });
     return res.end();
   }
 

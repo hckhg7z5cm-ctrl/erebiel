@@ -71,6 +71,7 @@ i18n.register("id", {
   "err.net.archon": "Koneksi terputus. Kegelapan tidak selalu bicara. Coba lagi.",
   "err.net.multivac": "Aku tidak bisa terhubung sekarang. Tunggu sebentar, lalu coba lagi.",
   "chat.retry": "Coba lagi",
+  "err.maintenance": "Obrolan sedang dalam perbaikan sekarang. Kami akan segera kembali.",
   "mirror.dark": "Cermin sedang gelap — akses kamera mungkin diblokir. Bayanganmu muncul di situs yang aman (https).",
   "mirror.fallback": [
     "Aku bilang ke semua orang bahwa aku baik-baik saja. Padahal tidak.",

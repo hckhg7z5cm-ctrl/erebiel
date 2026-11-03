@@ -276,6 +276,7 @@
       "err.net.archon": "The connection broke. The dark doesn't always speak. Try again.",
       "err.net.multivac": "I couldn't connect just now. Wait a moment, then try again.",
       "chat.retry": "Try again",
+      "err.maintenance": "Chat is under maintenance right now. We will be back soon.",
       "mirror.dark": "The mirror is dark — camera access may be blocked. Your reflection appears on a secure (https) site.",
       "mirror.fallback": [
         "I tell everyone I'm fine. I'm not.",
@@ -596,6 +597,7 @@
       "err.net.archon": "Bağlantı koptu. Karanlık her zaman konuşmaz. Tekrar dene.",
       "err.net.multivac": "Şu an bağlantı kurulamadı. Bir an bekle, sonra tekrar dene.",
       "chat.retry": "Tekrar dene",
+      "err.maintenance": "Şu an sohbet bakımda, yakında döneceğiz.",
       "mirror.dark": "Ayna karanlıkta — kamera erişimi engellenmiş olabilir. Güvenli (https) bir sitede yansıman belirir.",
       "mirror.fallback": [
         "Herkese iyi olduğumu söylüyorum. Değilim.",

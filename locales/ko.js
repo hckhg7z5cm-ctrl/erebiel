@@ -71,6 +71,7 @@ i18n.register("ko", {
   "err.net.archon": "연결이 끊겼다. 어둠은 늘 말하지 않는다. 다시 시도해.",
   "err.net.multivac": "지금은 연결할 수 없었어. 잠시 기다렸다가 다시 시도해 줘.",
   "chat.retry": "다시 시도",
+  "err.maintenance": "지금 채팅은 점검 중입니다. 곧 돌아올게요.",
   "mirror.dark": "거울이 어두워요 — 카메라 접근이 차단되었을 수 있어요. 안전한(https) 사이트에서 당신의 모습이 비칩니다.",
   "mirror.fallback": [
     "모두에게 괜찮다고 말해. 사실 괜찮지 않아.",

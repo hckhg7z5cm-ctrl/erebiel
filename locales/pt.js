@@ -71,6 +71,7 @@ i18n.register("pt", {
   "err.net.archon": "A conexão caiu. A escuridão nem sempre fala. Tente de novo.",
   "err.net.multivac": "Não consegui me conectar agora. Espere um pouco e tente novamente.",
   "chat.retry": "Tentar novamente",
+  "err.maintenance": "O chat está em manutenção agora. Voltamos em breve.",
   "mirror.dark": "O espelho está no escuro — o acesso à câmera pode estar bloqueado. Seu reflexo aparece em um site seguro (https).",
   "mirror.fallback": [
     "Digo a todos que estou bem. Não estou.",

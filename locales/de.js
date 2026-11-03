@@ -71,6 +71,7 @@ i18n.register("de", {
   "err.net.archon": "Die Verbindung ist abgebrochen. Die Dunkelheit spricht nicht immer. Versuch es noch einmal.",
   "err.net.multivac": "Ich konnte gerade keine Verbindung herstellen. Warte einen Moment und versuch es dann erneut.",
   "chat.retry": "Erneut versuchen",
+  "err.maintenance": "Der Chat ist gerade in Wartung. Wir sind bald wieder da.",
   "mirror.dark": "Der Spiegel ist dunkel — der Kamerazugriff ist vielleicht blockiert. Dein Spiegelbild erscheint auf einer sicheren (https) Seite.",
   "mirror.fallback": [
     "Ich sage allen, dass es mir gut geht. Das stimmt nicht.",

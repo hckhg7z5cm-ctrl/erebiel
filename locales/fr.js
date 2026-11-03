@@ -71,6 +71,7 @@ i18n.register("fr", {
   "err.net.archon": "La connexion s'est rompue. L'obscurité ne parle pas toujours. Réessaie.",
   "err.net.multivac": "Je n'ai pas pu me connecter. Attends un instant, puis réessaie.",
   "chat.retry": "Réessayer",
+  "err.maintenance": "Le chat est en maintenance pour le moment. On revient bientôt.",
   "mirror.dark": "Le miroir est dans le noir — l'accès à la caméra est peut-être bloqué. Ton reflet apparaît sur un site sécurisé (https).",
   "mirror.fallback": [
     "Je dis à tout le monde que je vais bien. Ce n'est pas vrai.",
