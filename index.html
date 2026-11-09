@@ -358,6 +358,36 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   #auth form .set-row{justify-content:center}
   #auth .set-input{width:100%;max-width:18rem}
 
+  /* ---- auth hero: slow-drifting character collage behind the sign-in form (FAZ 2) ---- */
+  #auth{overflow:hidden}
+  .auth-collage{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+  .auth-collage img{position:absolute;width:38vmax;max-width:420px;object-fit:cover;border-radius:18px;opacity:0;
+      filter:saturate(.75) brightness(.55);animation:authDrift 46s ease-in-out infinite,authFadeIn 1.6s ease forwards}
+  .auth-collage img:nth-of-type(1){top:-6%;left:-8%;animation-delay:0s,.1s}
+  .auth-collage img:nth-of-type(2){top:8%;right:-12%;animation-delay:-9s,.3s}
+  .auth-collage img:nth-of-type(3){bottom:-10%;left:4%;animation-delay:-18s,.5s}
+  .auth-collage img:nth-of-type(4){bottom:2%;right:-6%;animation-delay:-27s,.7s}
+  .auth-collage img:nth-of-type(5){top:36%;left:40%;animation-delay:-5s,.9s}
+  .auth-collage img:nth-of-type(6){top:60%;left:-14%;animation-delay:-14s,1.1s}
+  @keyframes authFadeIn{to{opacity:.5}}
+  @keyframes authDrift{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(2.5%,-2%) scale(1.05)}}
+  @media (prefers-reduced-motion:reduce){.auth-collage img{animation:authFadeIn .3s ease forwards}}
+  .auth-collage::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 30%,rgba(10,8,6,.55) 0%,var(--void) 78%)}
+  html[data-theme="light"] .auth-collage img{filter:saturate(.6) brightness(1.05)}
+  html[data-theme="light"] .auth-collage::after{background:radial-gradient(120% 90% at 50% 30%,rgba(250,248,245,.55) 0%,#faf8f5 78%)}
+  .auth-hero{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:.5rem;margin-bottom:.4rem}
+  .auth-brand{font-family:"Cinzel",serif;font-weight:700;font-size:1.3rem;letter-spacing:.3em;padding-left:.3em;color:var(--accent)}
+  .auth-subtitle{font-size:.7rem;letter-spacing:.14em;color:var(--silver);opacity:.75}
+  .auth-cards{display:flex;gap:.6rem;margin-top:.5rem;width:min(100%,22rem)}
+  .auth-card{flex:1;display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.6rem .3rem;border-radius:12px;text-align:center;
+      background:rgba(255,255,255,.04);border:1px solid rgba(var(--accent-rgb),.18)}
+  html[data-theme="light"] .auth-card{background:rgba(0,0,0,.03)}
+  .auth-card-name{font-size:.62rem;font-weight:600;letter-spacing:.12em;color:var(--accent)}
+  .auth-card-archon .auth-card-name{color:#8fa3b3}
+  .auth-card-multivac .auth-card-name{color:var(--gold)}
+  .auth-card-line{font-size:.56rem;line-height:1.3;color:var(--silver);opacity:.75}
+  #auth .set-rows{position:relative;z-index:1}
+
   /* ---------- NAVIGATION: icon rail (desktop) · tab bar (mobile) ---------- */
   .nav-item{position:relative;display:grid;place-items:center;width:40px;height:40px;background:none;border:none;border-radius:10px;cursor:pointer;padding:0;
       color:var(--silver);opacity:.5;transition:color .3s var(--ease),opacity .3s var(--ease),filter .3s var(--ease)}
@@ -1121,7 +1151,17 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   <!-- auth: Supabase Auth ile hesap sistemi (kayıt/giriş/çıkış/şifre sıfırlama). Anonim senkron-kod akışının
        YANINDA çalışır, onu değiştirmez — "settings" sayfasındaki sync kod bölümü dokunulmadan kalır. -->
   <section class="page" id="auth" hidden>
+    <div class="auth-collage" id="authCollage" aria-hidden="true"></div>
     <button class="page-back" data-close data-i18n-attr="aria-label:aria.back">‹</button>
+    <div class="auth-hero">
+      <p class="auth-brand" data-i18n="auth.hero.title"></p>
+      <p class="auth-subtitle" data-i18n="auth.hero.subtitle"></p>
+      <div class="auth-cards" aria-hidden="true">
+        <div class="auth-card auth-card-archon"><span class="auth-card-name" lang="en">Archon</span><span class="auth-card-line" data-i18n="auth.card.archon"></span></div>
+        <div class="auth-card auth-card-multivac"><span class="auth-card-name" lang="en">Multivac</span><span class="auth-card-line" data-i18n="auth.card.multivac"></span></div>
+        <div class="auth-card auth-card-mirror"><span class="auth-card-name" data-i18n="aria.mirror"></span><span class="auth-card-line" data-i18n="auth.card.mirror"></span></div>
+      </div>
+    </div>
     <p class="page-title" id="authTitle"></p>
     <div class="set-rows">
       <div id="authSignedIn" hidden>
@@ -1875,7 +1915,22 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     $("authHint").hidden=mode==="signedin";
     $("authTitle").textContent=t(mode==="signedin"?"auth.title.signedin":"auth.title."+mode);
   }
-  function renderAuth(){authMode(currentUser?"signedin":"signin");if(currentUser)$("authSignedInAs").textContent=t("auth.signedInAs",{u:currentUser.email||""});}
+  function renderAuth(){authMode(currentUser?"signedin":"signin");if(currentUser)$("authSignedInAs").textContent=t("auth.signedInAs",{u:currentUser.email||""});buildAuthCollage();}
+  // Arka plan kolajı: assets/characters/collage-N.webp dosyaları varsa görünür, yoksa (henüz eklenmediyse)
+  // sessizce atlanır — kod değişikliği gerekmeden görsel eklenince otomatik gelir. Yalnızca giriş sayfası
+  // ilk açıldığında bir kez kurulur (lazy).
+  let authCollageBuilt=false;
+  function buildAuthCollage(){
+    if(authCollageBuilt)return;authCollageBuilt=true;
+    const el=$("authCollage");
+    for(let n=1;n<=6;n++){
+      const img=document.createElement("img");
+      img.loading="lazy";img.decoding="async";img.alt="";
+      img.src=`assets/characters/collage-${n}.webp`;
+      img.addEventListener("error",()=>img.remove());
+      el.appendChild(img);
+    }
+  }
   $("toSignup").addEventListener("click",e=>{e.preventDefault();authMode("signup");});
   $("toSignin1").addEventListener("click",e=>{e.preventDefault();authMode("signin");});
   $("toSignin2").addEventListener("click",e=>{e.preventDefault();authMode("signin");});
