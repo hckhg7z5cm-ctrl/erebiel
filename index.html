@@ -387,6 +387,15 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   .auth-card-multivac .auth-card-name{color:var(--gold)}
   .auth-card-line{font-size:.56rem;line-height:1.3;color:var(--silver);opacity:.75}
   #auth .set-rows{position:relative;z-index:1}
+  .acct-list{display:flex;flex-direction:column;gap:.5rem;width:100%;list-style:none}
+  .acct-row{display:flex;align-items:center;justify-content:space-between;gap:.6rem;width:100%;padding:.55em .8em;border-radius:10px;
+      background:rgba(255,255,255,.04);border:1px solid rgba(var(--accent-rgb),.14);cursor:pointer;
+      font-family:var(--sans);font-size:.74rem;color:var(--stone);transition:border-color .3s var(--ease),background .3s var(--ease)}
+  .acct-row:hover,.acct-row:focus-visible{border-color:rgba(var(--accent-rgb),.5);outline:none}
+  .acct-row.is-current{cursor:default;opacity:.85}
+  .acct-email{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:14rem}
+  .acct-tag{font-size:.58rem;letter-spacing:.14em;color:var(--accent);text-transform:uppercase;flex:none}
+  html[data-theme="light"] .acct-row{background:rgba(0,0,0,.03)}
 
   /* ---------- NAVIGATION: icon rail (desktop) · tab bar (mobile) ---------- */
   .nav-item{position:relative;display:grid;place-items:center;width:40px;height:40px;background:none;border:none;border-radius:10px;cursor:pointer;padding:0;
@@ -1166,7 +1175,11 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     <div class="set-rows">
       <div id="authSignedIn" hidden>
         <p class="set-hint" id="authSignedInAs"></p>
+        <ul class="acct-list" id="acctList"></ul>
+        <div class="set-row"><span></span><div class="seg"><button id="acctAdd" data-i18n="auth.addAccount"></button></div></div>
+        <div class="set-sep"></div>
         <div class="set-row"><span></span><div class="seg"><button id="authSignOut" data-i18n="auth.signOut"></button></div></div>
+        <div class="set-row"><span></span><div class="seg"><button id="authSignOutAll" data-i18n="auth.signOutAll"></button></div></div>
       </div>
 
       <form id="authSignin">
@@ -1636,9 +1649,17 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
   /* ---- HOME + conversations ---- */
   const brandBtn=$("brand"),inviteEl=$("invite");
   const K_VISIT="erebiel-last-visit",K_CHATS="erebiel-chats",K_CHAT_OLD="erebiel-last-chat",NAMES={archon:"Archon",multivac:"Multivac"};
-  const MAX_CHATS=40,K_GONE="erebiel-chats-deleted";
-  function load(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
-  function store(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}
+  const MAX_CHATS=40,K_GONE="erebiel-chats-deleted",K_PROFILE="erebiel-profile";
+  // FAZ 3: aynı cihazda birden çok hesap. currentUser burada (gerçek kullanımından önce) tanımlanır ki
+  // load()/store() onu güvenle okuyabilsin. Supabase oturum durumu bunu daha aşağıda (AUTH bölümü) günceller.
+  let currentUser=null;
+  // Hesap bazlı (profil, sohbet geçmişi cache'i, silinen-sohbet işaretleri) anahtarlar oturum açık kullanıcıya
+  // göre öneklenir; anonim kullanımda (currentUser yok) anahtarlar eskisiyle BİREBİR AYNI kalır — mevcut
+  // anonim akış ve verisi hiç etkilenmez. K_VISIT ve K_SYNC kasıtlı olarak önekLENMEZ (cihaz bazlı kalır).
+  const ACCOUNT_SCOPED_KEYS=new Set([K_CHATS,K_GONE,K_PROFILE]);
+  function scopedKey(k){return currentUser&&ACCOUNT_SCOPED_KEYS.has(k)?"acct:"+currentUser.id+":"+k:k;}
+  function load(k){try{return JSON.parse(localStorage.getItem(scopedKey(k)));}catch(e){return null;}}
+  function store(k,v){try{localStorage.setItem(scopedKey(k),JSON.stringify(v));return true;}catch(e){return false;}}
   store(K_VISIT,Date.now());
   // every conversation is kept in this browser as {id, persona, api, ts}; the server keeps each persona's latest (sync code)
   function newId(){return Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);}
@@ -1904,7 +1925,7 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
      <script type="module"> tarafından kurulur (CDN'den @supabase/supabase-js); burada sadece bekleniyor. */
   const MIN_AGE=18; // tek sabit: DB'deki CHECK constraint'le (profiles_min_age) senkron tutulmalı
   async function getSupabase(){return await window.supabaseReady;}
-  let currentUser=null,authBusy=false;
+  let authBusy=false;
   function authNote(msg,isError){const el=$("authNote");el.textContent=msg||"";el.classList.toggle("is-error",!!isError);}
   function authMode(mode){
     authNote("");
@@ -1915,7 +1936,64 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     $("authHint").hidden=mode==="signedin";
     $("authTitle").textContent=t(mode==="signedin"?"auth.title.signedin":"auth.title."+mode);
   }
-  function renderAuth(){authMode(currentUser?"signedin":"signin");if(currentUser)$("authSignedInAs").textContent=t("auth.signedInAs",{u:currentUser.email||""});buildAuthCollage();}
+  function renderAuth(){authMode(currentUser?"signedin":"signin");if(currentUser)$("authSignedInAs").textContent=t("auth.signedInAs",{u:currentUser.email||""});renderAcctList();buildAuthCollage();}
+
+  /* ---- FAZ 3: aynı cihazda birden çok hesap arasında geçiş ----
+     erebiel-accounts: {[uid]: {email, savedAt}} — cihazda daha önce giriş yapılmış hesapların listesi
+     (sır değildir, sadece e-posta). erebiel-session:<uid>: o hesabın son bilinen access/refresh token'ı —
+     Supabase'in kendi oturum depolamasıyla aynı hassasiyette (zaten tarayıcıda saklanıyor); şifre YENİDEN
+     İSTEMEDEN hesaplar arası geçiş için kullanılır (sb.auth.setSession). Süresi geçmiş/geçersizse geçiş
+     başarısız olur ve o hesap için normal giriş formu açılır — sessizce başka bir hesaba "düşülmez".
+     Anonim akışı hiç etkilemez: bu anahtarlar yalnızca oturum açık kullanıcılar için yazılır/okunur. */
+  const K_ACCOUNTS="erebiel-accounts";
+  function getAccounts(){const a=load(K_ACCOUNTS);return a&&typeof a==="object"?a:{};}
+  function rememberAccount(user){if(!user)return;const a=getAccounts();a[user.id]={email:user.email||"",savedAt:Date.now()};store(K_ACCOUNTS,a);}
+  function forgetAccount(uid){const a=getAccounts();delete a[uid];store(K_ACCOUNTS,a);dropAccountSession(uid);}
+  const sessionKey=uid=>"erebiel-session:"+uid;
+  function saveAccountSession(session){if(!session?.user?.id||!session.refresh_token)return;
+    try{localStorage.setItem(sessionKey(session.user.id),JSON.stringify({access_token:session.access_token,refresh_token:session.refresh_token}));}catch(e){}}
+  function dropAccountSession(uid){try{localStorage.removeItem(sessionKey(uid));}catch(e){}}
+  function renderAcctList(){
+    const ul=$("acctList");if(!ul)return;ul.innerHTML="";
+    const accounts=getAccounts();
+    const ids=Object.keys(accounts).sort((a,b)=>(accounts[b].savedAt||0)-(accounts[a].savedAt||0));
+    for(const uid of ids){
+      const a=accounts[uid],li=document.createElement("li"),b=document.createElement("button");
+      b.className="acct-row";b.type="button";
+      const label=document.createElement("span");label.className="acct-email";label.dir="auto";label.textContent=a.email||uid;
+      b.appendChild(label);
+      if(uid===currentUser?.id){
+        b.disabled=true;b.classList.add("is-current");
+        const tag=document.createElement("span");tag.className="acct-tag";tag.textContent=t("auth.currentAccount");b.appendChild(tag);
+      }else{
+        b.setAttribute("aria-label",t("auth.switchAccount",{u:a.email||uid}));
+        b.addEventListener("click",()=>switchAccount(uid));
+      }
+      li.appendChild(b);ul.appendChild(li);
+    }
+  }
+  async function switchAccount(uid){
+    if(authBusy||!uid||uid===currentUser?.id)return;
+    let saved=null;try{saved=JSON.parse(localStorage.getItem(sessionKey(uid)));}catch(e){}
+    const email=getAccounts()[uid]?.email||"";
+    if(!saved?.refresh_token){authNote(t("auth.switchFailed"),true);authMode("signin");if(email)$("siEmail").value=email;return;}
+    setAuthBusy(true);
+    try{
+      const sb=await getSupabase();if(!sb)throw new Error("no-sb");
+      const{error}=await sb.auth.setSession({access_token:saved.access_token,refresh_token:saved.refresh_token});
+      if(error)throw error;
+    }catch(e){
+      dropAccountSession(uid);authNote(t("auth.switchFailed"),true);authMode("signin");if(email)$("siEmail").value=email;
+    }finally{setAuthBusy(false);}
+  }
+  function addAccount(){authMode("signin");$("siEmail").value="";$("siPassword").value="";}
+  // Hesap değişince (switch/add/sign-out), bu hesaba özel yerel önbellekler (profil, kolaj görselleri)
+  // sıfırlanır ve açıksa profil/geçmiş sayfaları yeniden çizilir — bir hesabın verisi diğerinde görünmez.
+  function onAccountChanged(){
+    try{resetProfileCache();}catch(e){}
+    if(profileEl&&!profileEl.hidden)renderProfile();
+    if(historyEl&&!historyEl.hidden)renderHistory();
+  }
   // Arka plan kolajı: assets/characters/collage-N.webp dosyaları varsa görünür, yoksa (henüz eklenmediyse)
   // sessizce atlanır — kod değişikliği gerekmeden görsel eklenince otomatik gelir. Yalnızca giriş sayfası
   // ilk açıldığında bir kez kurulur (lazy).
@@ -1996,16 +2074,37 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     }catch(err){authNote(authErrorMessage(err),true);}
     finally{setAuthBusy(false);}
   });
+  $("acctAdd").addEventListener("click",()=>{if(!authBusy)addAccount();});
+  // "bu cihazdan": sadece bu oturumu kapatır, diğer cihazlar/hesaplar etkilenmez. Geçiş listesinden bu
+  // hesaba tekrar dokunulursa normal giriş formu açılır (kayıtlı token bilerek silinir, bkz. aşağıdaki
+  // onAuthStateChange: SIGNED_OUT olayında dropAccountSession çalışır).
   $("authSignOut").addEventListener("click",async()=>{
     if(authBusy)return;setAuthBusy(true);
-    try{const sb=await getSupabase();if(sb)await sb.auth.signOut();}catch(e){}
+    try{const sb=await getSupabase();if(sb)await sb.auth.signOut({scope:"local"});}catch(e){}
+    finally{setAuthBusy(false);}
+  });
+  // "tüm cihazlardan": Supabase'e göre bu hesabın TÜM oturumlarını (bütün cihazlar) geçersiz kılar.
+  $("authSignOutAll").addEventListener("click",async()=>{
+    if(authBusy)return;setAuthBusy(true);
+    const uid=currentUser?.id;
+    try{const sb=await getSupabase();if(sb)await sb.auth.signOut({scope:"global"});if(uid)forgetAccount(uid);renderAcctList();}catch(e){}
     finally{setAuthBusy(false);}
   });
   (async()=>{
     const sb=await getSupabase();if(!sb)return;
     const{data}=await sb.auth.getSession();currentUser=data?.session?.user||null;
+    if(currentUser){rememberAccount(currentUser);saveAccountSession(data.session);}
     if(!authEl.hidden)renderAuth();
-    sb.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;if(!authEl.hidden)renderAuth();});
+    sb.auth.onAuthStateChange((event,session)=>{
+      const prevId=currentUser?.id||null;
+      currentUser=session?.user||null;
+      if(currentUser)saveAccountSession(session),rememberAccount(currentUser);
+      // yalnızca BU cihazdan çıkış yapılan hesabın token'ını sil — "tüm cihazlardan" zaten forgetAccount'u
+      // kendi el ile çağırıyor; burada ikinci kez (ve başka bir hesap için yanlışlıkla) silinmesin.
+      if(event==="SIGNED_OUT"&&prevId)dropAccountSession(prevId);
+      if((currentUser?.id||null)!==prevId)onAccountChanged();
+      if(!authEl.hidden)renderAuth();
+    });
   })();
 
   /* ---- TOAST ---- */
@@ -2105,7 +2204,7 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
 
   /* ======================= PROFILE (everything stays on this device) =======================
      Small settings live in localStorage (erebiel-profile); every image lives in IndexedDB. */
-  const K_PROFILE="erebiel-profile",profNote=$("profNote");let visionTimer=null,profNoteTimer=null;
+  const profNote=$("profNote");let visionTimer=null,profNoteTimer=null;
   function profNoteSay(msg){profNote.textContent=msg;clearTimeout(profNoteTimer);profNoteTimer=setTimeout(()=>{profNote.textContent="";},2500);}
   function getProfile(){const p=load(K_PROFILE);return p&&typeof p==="object"?p:{};}
   function saveProfile(patch){const p=Object.assign(getProfile(),patch);return store(K_PROFILE,p);}
@@ -2140,12 +2239,24 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     function unpack(o){if(!o||!o.buf)return o;const v=Object.assign({},o);v.blob=new Blob([o.buf],{type:o.type||"image/jpeg"});if(o.tbuf)v.thumb=new Blob([o.tbuf],{type:o.ttype||o.type||"image/jpeg"});
       delete v.buf;delete v.tbuf;delete v.type;delete v.ttype;return v;}
     return {
-      all:async s=>{const l=await run(s,"readonly",o=>o.getAll());return s==="images"?l.map(unpack):l;},
-      put:async(s,v)=>{const w=s==="images"?await pack(v):v;return run(s,"readwrite",o=>o.put(w));},
+      // FAZ 3: "images" ve "boards" kayıtları hesaba göre etiketlenir (scope). Etiketsiz (eski) kayıtlar
+      // "anon" sayılır — bu, mevcut anonim kullanıcının verisini hiç değiştirmeden okunabilir kalmasını
+      // sağlar. Yalnızca o anki hesabın scope'una uyan kayıtlar okunur; yeni kayıt o anki scope'la damgalanır.
+      all:async s=>{const l=await run(s,"readonly",o=>o.getAll());const items=s==="images"?l.map(unpack):l;
+        return (s==="images"||s==="boards")?items.filter(v=>(v.scope||"anon")===scopeTag()):items;},
+      put:async(s,v)=>{
+        if((s==="images"||s==="boards")&&v&&v.scope===undefined)v=Object.assign({},v,{scope:scopeTag()});
+        const w=s==="images"?await pack(v):v;return run(s,"readwrite",o=>o.put(w));
+      },
       del:(s,k)=>run(s,"readwrite",o=>o.delete(k)),
       kvDel:k=>run("kv","readwrite",o=>o.delete(k)),
     };
   })();
+  const scopeTag=()=>currentUser?"u:"+currentUser.id:"anon";
+  // "main" kolaj tahtasının IndexedDB birincil anahtarı: anonim kullanımda ESKİSİ GİBİ sabit "main" (mevcut
+  // anonim veri bununla bulunur, bozulmaz); oturum açık her hesap kendi "main:u:<id>" satırını kullanır —
+  // aksi hâlde tüm hesaplar aynı "main" satırını paylaşıp birbirinin kolajının üzerine yazardı.
+  const mainBoardId=()=>currentUser?"main:"+scopeTag():"main";
 
   /* ---- colour ---- */
   function rgb2hsl(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2;let h=0,s=0;
@@ -2222,6 +2333,9 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
 
   /* ---- library state + one-time migration from the earlier formats ---- */
   let images=[],boards=[],ready=null;
+  // FAZ 3: hesap değişince (bkz. onAccountChanged) çağrılır; önbellek sıfırlanır, bir sonraki init() çağrısı
+  // yeni hesabın (ya da anonimin) kendi images/boards'unu IDB'den yeniden okur.
+  function resetProfileCache(){ready=null;images=[];boards=[];board=null;snap="";}
   const imageById=id=>images.find(i=>i.id===id);
   const photosOnly=()=>images.filter(i=>i.kind==="photo").sort((a,b)=>b.createdAt-a.createdAt);
   async function migrate(){
@@ -2239,7 +2353,7 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
       await IDB.kvDel("photoBg");}catch(e){}
   }
   function init(){if(!ready)ready=(async()=>{try{await migrate();images=await IDB.all("images");boards=await IDB.all("boards");}catch(e){images=[];boards=[];}
-    board=boards.find(b=>b.id==="main")||null;
+    board=boards.find(b=>b.id===mainBoardId())||null;
     if(!board){board=newBoard();   // earlier journal photos become the first items of the page
       photosOnly().reverse().forEach((rec,i)=>{const a=rec.h/rec.w,w=.4,h=Math.min(.6,w*a);board.items.push({id:uid("e"),boardId:"main",type:"photo",x:i%2?.52:.06,y:.05+Math.floor(i/2)*.5,w:h/a,h,rotation:((i*37)%11)-5,z:i+1,shape:"original",shapeParams:{lock:true,seed:i+1},outline:{enabled:false,width:6,color:"#ffffff"},imageId:rec.id,filter:null,note:rec.note||"",createdAt:rec.createdAt});});
       try{await IDB.put("boards",board);}catch(e){}}
@@ -2486,7 +2600,7 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
   }
 
   /* ---- board state, saving, undo / redo (last 30) ---- */
-  function newBoard(){return {id:"main",height:1.1,updatedAt:Date.now(),items:[]};}
+  function newBoard(){return {id:mainBoardId(),height:1.1,updatedAt:Date.now(),items:[]};}
   let saveT=null;
   function saveBoard(now){if(!board)return;board.updatedAt=Date.now();clearTimeout(saveT);const go=()=>IDB.put("boards",board).catch(e=>pfSay(errText(e)));if(now)go();else saveT=setTimeout(go,300);}
   let undoStack=[],redoStack=[],snap="";
@@ -3040,7 +3154,7 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
   async function deleteAllHistory(){
     const code=syncCode(false);
     try{if(code)await historyCall(code,"delete");}catch(e){return false;}
-    try{localStorage.removeItem(K_CHATS);localStorage.removeItem(K_GONE);}catch(e){}
+    try{localStorage.removeItem(scopedKey(K_CHATS));localStorage.removeItem(scopedKey(K_GONE));}catch(e){}
     afterHistoryChange();return true;
   }
 
