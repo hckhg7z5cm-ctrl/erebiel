@@ -1165,8 +1165,35 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
       <p class="set-note" id="syncNote" aria-live="polite"></p>
       <p class="set-hint" data-i18n="settings.hint"></p>
       <div class="set-sep" id="acctManageSep" hidden></div>
+      <div class="set-row" id="acctSettingsRow" hidden><span></span><div class="seg"><button id="acctSettingsOpen" data-i18n="settings.accountSettings"></button></div></div>
       <div class="set-row"><span></span><div class="seg"><button id="aboutOpen" data-i18n="settings.about"></button></div></div>
       <div class="set-row" id="acctManageRow" hidden><span></span><div class="seg"><button id="acctManageOpen" data-i18n="settings.manageAccount"></button></div></div>
+    </div>
+  </section>
+
+  <!-- acctSettings: FAZ 5 — kullanıcı adı/e-posta/şifre değiştir -->
+  <section class="page page-scroll" id="acctSettings" hidden>
+    <button class="page-back" data-close data-i18n-attr="aria-label:aria.back">‹</button>
+    <p class="page-title" data-i18n="acctSettings.title"></p>
+    <div class="set-rows">
+      <form id="asUsernameForm">
+        <div class="set-row"><input class="set-input" id="asUsername" dir="ltr" autocomplete="off" spellcheck="false" maxlength="20" required data-i18n-attr="placeholder:acctSettings.username.label;aria-label:acctSettings.username.label"></div>
+        <div class="set-row"><span></span><div class="seg"><button type="submit" id="asUsernameSubmit" data-i18n="acctSettings.username.submit"></button></div></div>
+        <p class="set-note" id="asUsernameNote" aria-live="polite"></p>
+      </form>
+      <div class="set-sep"></div>
+      <form id="asEmailForm">
+        <div class="set-row"><input class="set-input" type="email" id="asEmail" autocomplete="email" required data-i18n-attr="placeholder:acctSettings.email.label;aria-label:acctSettings.email.label"></div>
+        <div class="set-row"><span></span><div class="seg"><button type="submit" id="asEmailSubmit" data-i18n="acctSettings.email.submit"></button></div></div>
+        <p class="set-note" id="asEmailNote" aria-live="polite"></p>
+      </form>
+      <div class="set-sep"></div>
+      <form id="asPasswordForm">
+        <div class="set-row"><input class="set-input" type="password" id="asPasswordCurrent" autocomplete="current-password" required data-i18n-attr="placeholder:acctSettings.password.current;aria-label:acctSettings.password.current"></div>
+        <div class="set-row"><input class="set-input" type="password" id="asPasswordNew" autocomplete="new-password" minlength="8" required data-i18n-attr="placeholder:acctSettings.password.new;aria-label:acctSettings.password.new"></div>
+        <div class="set-row"><span></span><div class="seg"><button type="submit" id="asPasswordSubmit" data-i18n="acctSettings.password.submit"></button></div></div>
+        <p class="set-note" id="asPasswordNote" aria-live="polite"></p>
+      </form>
     </div>
   </section>
 
@@ -1944,9 +1971,10 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     const light=root.getAttribute("data-theme")==="light",silver=root.getAttribute("data-accent")==="silver";
     document.querySelectorAll("[data-set-theme]").forEach(b=>b.classList.toggle("is-on",(b.getAttribute("data-set-theme")==="light")===light));
     document.querySelectorAll("[data-set-accent]").forEach(b=>b.classList.toggle("is-on",(b.getAttribute("data-set-accent")==="silver")===silver));
-    // FAZ 4: "Hesabı yönet" (dondur/sil) satırı sadece oturum açık kullanıcıya gösterilir — backend'siz/
-    // işlevsiz buton gösterilmesin diye anonimde tamamen gizlenir.
+    // FAZ 4/5: hesaba bağlı satırlar (dondur/sil, hesap ayarları) sadece oturum açık kullanıcıya
+    // gösterilir — backend'siz/işlevsiz buton gösterilmesin diye anonimde tamamen gizlenir.
     $("acctManageRow").hidden=!currentUser;$("acctManageSep").hidden=!currentUser;
+    $("acctSettingsRow").hidden=!currentUser;
   }
   function toggleMore(open){const o=open===undefined?moreSheet.hidden:open;moreSheet.hidden=!o;moreBtn.setAttribute("aria-expanded",String(o));}
   function navGo(k){
@@ -3330,6 +3358,71 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
   /* ---- FAZ 5: Hakkında ---- */
   $("aboutOpen").addEventListener("click",()=>{openPage($("about"));setActive("");});
   $("aboutPrivacyBtn").addEventListener("click",()=>{closePages();$("safety").classList.add("on");});
+
+  /* ---- FAZ 5: Hesap (kullanıcı adı / e-posta / şifre değiştir) ---- */
+  $("acctSettingsOpen").addEventListener("click",async()=>{
+    if(!currentUser)return;
+    $("asEmail").value=currentUser.email||"";
+    $("asUsername").value="";$("asUsernameNote").textContent="";
+    $("asPasswordCurrent").value="";$("asPasswordNew").value="";$("asPasswordNote").textContent="";$("asEmailNote").textContent="";
+    try{
+      const sb=await getSupabase();
+      if(sb){const{data}=await sb.from("profiles").select("username").eq("id",currentUser.id).single();if(data?.username)$("asUsername").value=data.username;}
+    }catch(e){}
+    openPage($("acctSettings"));setActive("");
+  });
+  let asBusy=false;
+  $("asUsernameForm").addEventListener("submit",async e=>{
+    e.preventDefault();if(asBusy||!currentUser)return;
+    const note=$("asUsernameNote"),username=$("asUsername").value.trim().toLowerCase();
+    note.classList.remove("is-error");
+    if(!/^[a-z0-9_]{3,20}$/.test(username)){note.textContent=t("auth.err.usernameInvalid");note.classList.add("is-error");return;}
+    asBusy=true;$("asUsernameSubmit").disabled=true;note.textContent=t("auth.loading");
+    try{
+      const sb=await getSupabase();if(!sb)throw new Error("no-sb");
+      const{data:avail}=await sb.rpc("is_username_available",{candidate:username});
+      if(avail===false){note.textContent=t("auth.err.usernameTaken");note.classList.add("is-error");return;}
+      const{error}=await sb.from("profiles").update({username}).eq("id",currentUser.id);
+      if(error)throw error;
+      note.textContent=t("acctSettings.username.success");
+    }catch(err){note.textContent=authErrorMessage(err);note.classList.add("is-error");}
+    finally{asBusy=false;$("asUsernameSubmit").disabled=false;}
+  });
+  $("asEmailForm").addEventListener("submit",async e=>{
+    e.preventDefault();if(asBusy||!currentUser)return;
+    const note=$("asEmailNote"),email=$("asEmail").value.trim();
+    note.classList.remove("is-error");
+    if(!email){note.textContent=t("auth.err.required");note.classList.add("is-error");return;}
+    asBusy=true;$("asEmailSubmit").disabled=true;note.textContent=t("auth.loading");
+    try{
+      const sb=await getSupabase();if(!sb)throw new Error("no-sb");
+      const{error}=await sb.auth.updateUser({email});
+      if(error)throw error;
+      note.textContent=t("acctSettings.email.note");
+    }catch(err){note.textContent=String(err?.message||t("auth.err.generic"));note.classList.add("is-error");}
+    finally{asBusy=false;$("asEmailSubmit").disabled=false;}
+  });
+  $("asPasswordForm").addEventListener("submit",async e=>{
+    e.preventDefault();if(asBusy||!currentUser)return;
+    const note=$("asPasswordNote"),current=$("asPasswordCurrent").value,next=$("asPasswordNew").value;
+    note.classList.remove("is-error");
+    if(!current||!next){note.textContent=t("auth.err.required");note.classList.add("is-error");return;}
+    asBusy=true;$("asPasswordSubmit").disabled=true;note.textContent=t("auth.loading");
+    try{
+      const sb=await getSupabase();if(!sb)throw new Error("no-sb");
+      // önce şu anki şifreyi doğrula (defense in depth — oturum zaten açıkken updateUser şifre istemez,
+      // ama hesabı başkasının bırakıp gittiği bir cihazda şifre değiştirmek için bunu zorunlu kılıyoruz).
+      const{error:pwErr}=await sb.auth.signInWithPassword({email:currentUser.email,password:current});
+      if(pwErr)throw Object.assign(new Error("wrong-password"),{code:"wrong-password"});
+      const{error}=await sb.auth.updateUser({password:next});
+      if(error)throw error;
+      note.textContent=t("acctSettings.password.success");
+      $("asPasswordCurrent").value="";$("asPasswordNew").value="";
+    }catch(err){
+      note.textContent=err?.code==="wrong-password"?t("acctManage.delete.wrongPassword"):t("auth.err.generic");
+      note.classList.add("is-error");
+    }finally{asBusy=false;$("asPasswordSubmit").disabled=false;}
+  });
 
   /* ---- SAFETY ---- */
   $("infoDot").addEventListener("click",()=>$("safety").classList.add("on"));
