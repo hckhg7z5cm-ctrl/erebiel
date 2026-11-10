@@ -1132,6 +1132,15 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     </div>
   </div>
 
+  <!-- freezeOverlay: FAZ 4 — oturum açık ve dondurulmuş bir hesapla giriş yapılınca gösterilir. -->
+  <div class="safety-overlay" id="freezeOverlay">
+    <div class="safety-card">
+      <span data-i18n="freeze.overlay.title"></span>
+      <br><br><span id="freezeOverlayBody"></span>
+      <div class="safety-links"><button class="x" id="freezeReopenNow" data-i18n="freeze.overlay.reopen"></button><button class="x" id="freezeDismiss" data-i18n="freeze.overlay.dismiss"></button></div>
+    </div>
+  </div>
+
 
   <!-- ================= PAGES ================= -->
   <section class="page" id="soon" hidden>
@@ -1154,6 +1163,42 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
       <div class="set-row"><span class="set-label" data-i18n="settings.history"></span><div class="seg"><button id="historyDelete" data-i18n="settings.delete"></button></div></div>
       <p class="set-note" id="syncNote" aria-live="polite"></p>
       <p class="set-hint" data-i18n="settings.hint"></p>
+      <div class="set-sep" id="acctManageSep" hidden></div>
+      <div class="set-row" id="acctManageRow" hidden><span></span><div class="seg"><button id="acctManageOpen" data-i18n="settings.manageAccount"></button></div></div>
+    </div>
+  </section>
+
+  <!-- acctManage: FAZ 4 — dondur/sil. Yalnızca oturum açık kullanıcıya gösterilir (bkz. syncSettings). -->
+  <section class="page page-scroll" id="acctManage" hidden>
+    <button class="page-back" data-close data-i18n-attr="aria-label:aria.back">‹</button>
+    <p class="page-title" data-i18n="acctManage.title"></p>
+    <div class="set-rows">
+      <p class="set-label" data-i18n="acctManage.freeze.title"></p>
+      <p class="set-hint" data-i18n="acctManage.freeze.note"></p>
+      <div id="amFrozenActive" hidden>
+        <p class="set-note" id="amFrozenUntilText"></p>
+        <div class="set-row"><span></span><div class="seg"><button id="amUnfreeze" data-i18n="acctManage.freeze.reopenNow"></button></div></div>
+      </div>
+      <div class="set-row" id="amFrozenPick">
+        <span></span>
+        <div class="seg">
+          <button data-freeze="1m" data-i18n="acctManage.freeze.1m"></button>
+          <button data-freeze="1y" data-i18n="acctManage.freeze.1y"></button>
+          <button data-freeze="10y" data-i18n="acctManage.freeze.10y"></button>
+        </div>
+      </div>
+      <div class="set-sep"></div>
+      <p class="set-label" data-i18n="acctManage.delete.title"></p>
+      <p class="set-hint" data-i18n="acctManage.delete.note"></p>
+      <div class="set-row" id="amDeleteStartRow"><span></span><div class="seg"><button id="amDeleteStart" data-i18n="acctManage.delete.start"></button></div></div>
+      <form id="amDeleteForm" hidden>
+        <p class="set-hint" data-i18n="acctManage.delete.willDelete"></p>
+        <p class="set-note" id="amDeleteCounts" aria-live="polite"></p>
+        <div class="set-row"><input class="set-input" type="password" id="amDeletePassword" autocomplete="current-password" required data-i18n-attr="placeholder:auth.password;aria-label:auth.password"></div>
+        <div class="set-row"><input class="set-input" type="text" id="amDeleteConfirm" dir="ltr" autocomplete="off" spellcheck="false" required data-i18n-attr="placeholder:acctManage.delete.confirmLabel;aria-label:acctManage.delete.confirmLabel"></div>
+        <p class="set-note" id="amDeleteNote" aria-live="polite"></p>
+        <div class="set-row"><span></span><div class="seg"><button type="button" id="amDeleteCancel" data-i18n="acctManage.delete.cancel"></button><button type="submit" id="amDeleteSubmit" data-i18n="acctManage.delete.submit"></button></div></div>
+      </form>
     </div>
   </section>
 
@@ -1887,6 +1932,8 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     const light=root.getAttribute("data-theme")==="light",silver=root.getAttribute("data-accent")==="silver";
     document.querySelectorAll("[data-set-theme]").forEach(b=>b.classList.toggle("is-on",(b.getAttribute("data-set-theme")==="light")===light));
     document.querySelectorAll("[data-set-accent]").forEach(b=>b.classList.toggle("is-on",(b.getAttribute("data-set-accent")==="silver")===silver));
+    // FAZ 4: "Hesabı yönet" (dondur/sil) satırı sadece oturum açık kullanıcıya gösterilir.
+    $("acctManageRow").hidden=!currentUser;$("acctManageSep").hidden=!currentUser;
   }
   function toggleMore(open){const o=open===undefined?moreSheet.hidden:open;moreSheet.hidden=!o;moreBtn.setAttribute("aria-expanded",String(o));}
   function navGo(k){
@@ -1924,6 +1971,10 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
      Anonim senkron-kod/Redis akışının YANINDA çalışır, onu değiştirmez. Supabase istemcisi ayrı bir
      <script type="module"> tarafından kurulur (CDN'den @supabase/supabase-js); burada sadece bekleniyor. */
   const MIN_AGE=18; // tek sabit: DB'deki CHECK constraint'le (profiles_min_age) senkron tutulmalı
+  // FAZ 4: dondurma süreleri — TEK SABİT (talimat). ms cinsinden; 1 yıl/10 yıl takvim yılı değil, 365/3650
+  // gün olarak sabit tutulur (artık yıl farkı önemsiz, basitlik için).
+  const DAY_MS=24*60*60*1000;
+  const FREEZE_DURATIONS={"1m":30*DAY_MS,"1y":365*DAY_MS,"10y":3650*DAY_MS};
   async function getSupabase(){return await window.supabaseReady;}
   let authBusy=false;
   function authNote(msg,isError){const el=$("authNote");el.textContent=msg||"";el.classList.toggle("is-error",!!isError);}
@@ -1993,7 +2044,104 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     try{resetProfileCache();}catch(e){}
     if(profileEl&&!profileEl.hidden)renderProfile();
     if(historyEl&&!historyEl.hidden)renderHistory();
+    if(settingsEl&&!settingsEl.hidden)syncSettings();
+    if(currentUser)checkFreezeOnSignIn();else closeFreezeOverlay();
   }
+
+  /* ---- FAZ 4: dondur/sil (Ayarlar > Hesabı yönet) ----
+     Dondurma/açma, profiles.frozen_until üzerinde doğrudan bir güncelleme (RLS: kullanıcı sadece kendi
+     satırını güncelleyebilir, bkz. 0001_profiles.sql profiles_update_own) — ek bir sunucu kodu gerekmez.
+     Silme, service_role/Admin API KULLANMAZ: public.delete_my_account() (SECURITY DEFINER, bkz.
+     0004_dondur_sil.sql) kendi auth.users satırını siler; profiles/sohbetler/mesajlar/user_memories hepsi
+     "on delete cascade" ile otomatik ve kalıcı silinir. */
+  async function fetchFrozenUntil(){
+    const sb=await getSupabase();if(!sb||!currentUser)return null;
+    try{const{data,error}=await sb.from("profiles").select("frozen_until").eq("id",currentUser.id).single();
+      if(error)return null;return data?.frozen_until||null;}catch(e){return null;}
+  }
+  function closeFreezeOverlay(){$("freezeOverlay")?.classList.remove("on");}
+  async function checkFreezeOnSignIn(){
+    const until=await fetchFrozenUntil();
+    if(until&&new Date(until).getTime()>Date.now()){
+      $("freezeOverlayBody").textContent=t("freeze.overlay.body",{date:fmtDate(new Date(until).getTime())});
+      $("freezeOverlay").classList.add("on");
+    }else closeFreezeOverlay();
+  }
+  $("freezeReopenNow").addEventListener("click",async()=>{
+    const sb=await getSupabase();if(!sb||!currentUser)return;
+    try{await sb.from("profiles").update({frozen_until:null}).eq("id",currentUser.id);}catch(e){}
+    closeFreezeOverlay();toast(t("acctManage.freeze.reopened"));
+  });
+  $("freezeDismiss").addEventListener("click",async()=>{
+    closeFreezeOverlay();
+    try{const sb=await getSupabase();if(sb)await sb.auth.signOut({scope:"local"});}catch(e){}
+  });
+
+  const acctManageEl=$("acctManage");
+  $("acctManageOpen").addEventListener("click",()=>{renderAcctManage();openPage(acctManageEl);setActive("");});
+  async function renderAcctManage(){
+    $("amDeleteForm").hidden=true;$("amDeleteStartRow").hidden=false;
+    $("amDeletePassword").value="";$("amDeleteConfirm").value="";$("amDeleteNote").textContent="";$("amDeleteNote").classList.remove("is-error");
+    const until=await fetchFrozenUntil();
+    const frozen=until&&new Date(until).getTime()>Date.now();
+    $("amFrozenActive").hidden=!frozen;$("amFrozenPick").hidden=!!frozen;
+    if(frozen)$("amFrozenUntilText").textContent=t("acctManage.freeze.active",{date:fmtDate(new Date(until).getTime())});
+  }
+  document.querySelectorAll("[data-freeze]").forEach(b=>b.addEventListener("click",async()=>{
+    if(!currentUser)return;
+    const dur=FREEZE_DURATIONS[b.getAttribute("data-freeze")];if(!dur)return;
+    const sb=await getSupabase();if(!sb)return;
+    const until=new Date(Date.now()+dur).toISOString();
+    try{const{error}=await sb.from("profiles").update({frozen_until:until}).eq("id",currentUser.id);if(error)throw error;}
+    catch(e){toast(t("acctManage.delete.error"));return;}
+    renderAcctManage();toast(t("acctManage.freeze.done"));
+  }));
+  $("amUnfreeze").addEventListener("click",async()=>{
+    const sb=await getSupabase();if(!sb||!currentUser)return;
+    try{await sb.from("profiles").update({frozen_until:null}).eq("id",currentUser.id);}catch(e){}
+    renderAcctManage();toast(t("acctManage.freeze.reopened"));
+  });
+  $("amDeleteStart").addEventListener("click",async()=>{
+    $("amDeleteForm").hidden=false;$("amDeleteStartRow").hidden=true;
+    $("amDeleteCounts").textContent=t("auth.loading");
+    const sb=await getSupabase();if(!sb)return;
+    try{
+      const{data,error}=await sb.rpc("account_data_counts");
+      if(error)throw error;
+      $("amDeleteCounts").textContent=t("acctManage.delete.countsLine",{sohbetler:data.sohbetler,mesajlar:data.mesajlar,memories:data.user_memories,profiles:data.profiles});
+    }catch(e){$("amDeleteCounts").textContent=t("acctManage.delete.error");}
+  });
+  $("amDeleteCancel").addEventListener("click",()=>{$("amDeleteForm").hidden=true;$("amDeleteStartRow").hidden=false;});
+  let deleteBusy=false;
+  $("amDeleteForm").addEventListener("submit",async e=>{
+    e.preventDefault();if(deleteBusy||!currentUser)return;
+    const note=$("amDeleteNote"),submit=$("amDeleteSubmit");
+    const password=$("amDeletePassword").value,confirmWord=$("amDeleteConfirm").value.trim();
+    const needWord=t("acctManage.delete.confirmWord");
+    if(confirmWord.toLocaleUpperCase()!==needWord.toLocaleUpperCase()){note.textContent=t("acctManage.delete.wrongConfirm");note.classList.add("is-error");return;}
+    if(!password){note.textContent=t("auth.err.required");note.classList.add("is-error");return;}
+    deleteBusy=true;submit.disabled=true;note.classList.remove("is-error");note.textContent=t("auth.loading");
+    const email=currentUser.email,uid=currentUser.id;
+    try{
+      const sb=await getSupabase();if(!sb)throw new Error("no-sb");
+      const{error:pwErr}=await sb.auth.signInWithPassword({email,password});
+      if(pwErr)throw Object.assign(new Error("wrong-password"),{code:"wrong-password"});
+      const{error:delErr}=await sb.rpc("delete_my_account");
+      if(delErr)throw delErr;
+      // Silme sonrası KALAN KAYIT SAYISI (içerik değil) 0 olduğunu doğrular — JWT silme sonrası bir süre
+      // daha geçerli kaldığından bu çağrı hâlâ yetkilidir (auth.uid() hedefle eşleşir).
+      let remaining=0;
+      try{const{data:after}=await sb.rpc("account_data_counts");if(after)remaining=Object.values(after).reduce((a,n)=>a+(n||0),0);}catch(e){}
+      note.textContent=t("acctManage.delete.success",{n:remaining});
+      try{localStorage.removeItem(scopedKey(K_PROFILE));localStorage.removeItem(scopedKey(K_CHATS));localStorage.removeItem(scopedKey(K_GONE));}catch(e){}
+      try{for(const rec of await IDB.all("images"))await IDB.del("images",rec.id);for(const rec of await IDB.all("boards"))await IDB.del("boards",rec.id);}catch(e){}
+      forgetAccount(uid);
+      try{await sb.auth.signOut({scope:"local"});}catch(e){}
+    }catch(err){
+      note.classList.add("is-error");
+      note.textContent=err?.code==="wrong-password"?t("acctManage.delete.wrongPassword"):t("acctManage.delete.error");
+    }finally{deleteBusy=false;submit.disabled=false;}
+  });
   // Arka plan kolajı: assets/characters/collage-N.webp dosyaları varsa görünür, yoksa (henüz eklenmediyse)
   // sessizce atlanır — kod değişikliği gerekmeden görsel eklenince otomatik gelir. Yalnızca giriş sayfası
   // ilk açıldığında bir kez kurulur (lazy).
@@ -2093,7 +2241,7 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
   (async()=>{
     const sb=await getSupabase();if(!sb)return;
     const{data}=await sb.auth.getSession();currentUser=data?.session?.user||null;
-    if(currentUser){rememberAccount(currentUser);saveAccountSession(data.session);}
+    if(currentUser){rememberAccount(currentUser);saveAccountSession(data.session);checkFreezeOnSignIn();}
     if(!authEl.hidden)renderAuth();
     sb.auth.onAuthStateChange((event,session)=>{
       const prevId=currentUser?.id||null;

@@ -71,9 +71,48 @@ hiçbir şey çalıştırılmadı. Her adım kendi commit'i olarak giris-sistemi
    alanı) yukarıdaki kararlarda. **Test:** `node tools/verify-protected-chat.mjs check`
    dokunulmadı (bu adım `api/chat.js`'e dokunmadı, zaten gerekmiyordu).
 
+- **Karar (FAZ 4):** "Hemen sil" service_role/Admin API KULLANMADAN yapıldı: `delete_my_account()`
+  SECURITY DEFINER bir Postgres fonksiyonu kendi `auth.users` satırını siler, `profiles`/`sohbetler`/
+  `mesajlar`/`user_memories` zaten `on delete cascade` ile tanımlı (0001-0003), otomatik ve kalıcı silinir.
+  **Neden:** `api/_supabase.js`'teki mevcut tasarım kuralı ("service_role anahtarı bu akışta gerekmiyor,
+  sızma riski bu dosyada yok") ile tutarlı — yeni bir sunucu endpoint'i ve SERVICE_ROLE_KEY'in koda
+  girmesi gerekmedi. **Doğrulanmadı:** fonksiyonu oluşturan rolün (Supabase SQL Editor'da normalde
+  "postgres") `auth.users`'da DELETE yetkisi olduğu varsayıldı — yaygın/belgeli bir desen ama BU
+  Supabase projesinde migration çalıştırılıp gerçekten denenmeden kesin değil. Çalışmazsa alternatif:
+  Admin API + service_role ile bir `api/account.js` endpoint'i (yazılmadı, gerekirse eklenir).
+- **Karar (FAZ 4):** "Silinecekler listesi" ve silme sonrası "kalan kayıt sayısı 0" kontrolü AYNI
+  fonksiyonla (`account_data_counts`) yapılıyor: silme sonrası JWT bir süre daha geçerli kaldığından
+  (satır gitmiş olsa da) aynı çağrı tekrar yapılabiliyor ve gerçek sayıları (0) döndürüyor.
+- **Karar (FAZ 4):** Dondurma süresi bitip 30 gün giriş yoksa kalıcı silme kuralı `auth.users.
+  last_sign_in_at` ile ölçülüyor (frozen_until'dan SONRA giriş varsa aday listesinden çıkar, dondurmayı
+  açmasa bile) — ekstra bir "son giriş" kolonu gerekmedi. **Bana düşen:** bu, `run_account_retention_
+  sweep()` fonksiyonunu GÜNLÜK çalıştıracak bir cron (Supabase pg_cron ya da Vercel Cron) kurulumu
+  gerektiriyor; migration sadece fonksiyonu tanımlıyor, zamanlamayı KURMUYOR (talimat: hiçbir şey
+  çalıştırılmayacak/kurulmayacaktı).
+- **Karar (FAZ 4):** "SİL"/"DELETE" onay kelimesi dile göre sabit metne gömüldü (`acctManage.delete.
+  confirmLabel`), `{değişken}` olarak DEĞİL — çünkü `data-i18n-attr` placeholder'ları değişken
+  geçirmiyor (yalnızca `t(key)`, vars'sız çağrılıyor); aksi hâlde kullanıcı literal "{word}" görürdü.
+- **Yapılamadı (FAZ 4, bilerek):** Yüz/ses/avatar-sağlayıcı kayıtlarının silinmesi — bu veriler henüz
+  HİÇBİR TABLODA saklanmıyor (ElevenLabs/avatar entegrasyonu roadmap'te v1 sonrası). "Silinecekler
+  listesi" bunu kullanıcıya açıkça söylüyor (acctManage.delete.note). İleride o tablolar eklenince
+  `auth.users(id) on delete cascade` kuralına uyarlarsa `delete_my_account()` DEĞİŞMEDEN onları da siler;
+  sadece `account_data_counts()`'a elle bir satır eklenmesi gerekir (migration'da not var).
+- **Yapılamadı (FAZ 4):** 7-gün-önce ve süre-bitti e-postalarının gerçek gönderimi — taslaklar
+  `supabase/emails/freeze-7d-before.md` ve `freeze-expired.md`'de, gönderime bağlanmadı (talimat:
+  "gönderimi bağlama").
+
+## Yapılanlar (commit sırasıyla) — devamı
+
+5. (bu commit) — FAZ 4: Ayarlar > "Hesabı yönet" sayfası — dondur (1 ay/1 yıl/10 yıl, `FREEZE_DURATIONS`
+   tek sabit), girişte tek-dokunuşla-aç kakışır penceresi (frozen hesapla girişte otomatik), hemen sil
+   (şifre + "SİL"/"DELETE" onayı, silinecekler listesi, silme sonrası kalan-sayı-0 gösterimi, yerel
+   profil/kolaj/sohbet önbelleğini de temizler). `supabase/migrations/0004_dondur_sil.sql` (ÇALIŞTIRILMADI
+   — bkz. aşağıdaki migration sırası), `supabase/emails/*.md` taslakları, `tools/test-account-delete.mjs`
+   (sahte veritabanı testi, 8/8 geçti — `node tools/test-account-delete.mjs`).
+
 ## Devam ediyor / sıradaki
 
-FAZ 4 (dondur/sil) — sıradaki.
+FAZ 5 (Ayarlar/Instagram menüsü) — sıradaki.
 
 ## Yapılamayanlar
 
@@ -84,12 +123,24 @@ FAZ 4 (dondur/sil) — sıradaki.
 1. `0001_profiles.sql`
 2. `0002_sohbetler_mesajlar.sql`
 3. `0003_user_memories.sql`
-(yukarıdakiler zaten FAZ 1'de yazıldı, hâlâ çalıştırılmamışsa bu sırayla.)
+4. `0004_dondur_sil.sql` (0001'den sonra; profiles'a kolon ekler + 3 fonksiyon tanımlar)
+(hiçbiri bu gece ÇALIŞTIRILMADI — hepsi SQL Editor'da sırayla senin çalıştırmanı bekliyor.)
 
 ## Bana düşen adımlar
 
-(Sona eklenecek.)
+- `0004_dondur_sil.sql`'i Supabase SQL Editor'da çalıştır (0001'den sonra).
+- `public.run_account_retention_sweep()`'i GÜNLÜK çağıracak bir zamanlayıcı kur (Supabase pg_cron:
+  `select cron.schedule('account-retention','0 3 * * *','select public.run_account_retention_sweep();');`
+  ya da Vercel Cron + küçük bir endpoint). Kurulmadıkça dondurma süresi bitip 30 gün giriş olmayan
+  hesaplar OTOMATİK silinmez (fonksiyon tanımlı ama tetiklenmiyor).
+- `delete_my_account()`'un gerçek bir Supabase projesinde çalıştığını DOĞRULA (bkz. yukarıdaki "Karar"
+  notu — `auth.users` üzerinde DELETE yetkisi varsayıldı, test edilmedi).
+- İstersen `supabase/emails/*.md` taslaklarını bir e-posta servisine (Supabase SMTP/Resend/Postmark) bağla.
+- `assets/characters/` altına gerçek `collage-1..N.webp`, `archon.webp`, `multivac.webp`, `mirror.webp`
+  görsellerini ekle (FAZ 2) — kod değişikliği gerekmez, otomatik görünür.
 
 ## Test komutları
 
-(Sona eklenecek.)
+- `node tools/verify-protected-chat.mjs check` — `api/chat.js`'teki kriz/güvenlik/dil bloklarının
+  birebir kaldığını doğrular. Bu dosyaya dokunan HER commit'ten sonra çalıştırılmalı.
+- `node tools/test-account-delete.mjs` — FAZ 4 silme/dondurma mantığının sahte veritabanı testi (8 test).
