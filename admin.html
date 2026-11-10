@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EREBIEL — admin</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root{--void:#0a0806;--gold:#d4af6a;--stone:#c8c9cc;--err:#e07a5f}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--void);color:var(--stone);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+      min-height:100dvh;padding:2rem 1.2rem 4rem;max-width:36rem;margin:0 auto}
+  h1{font-size:1rem;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:1.6rem}
+  .row{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.8rem}
+  input{background:transparent;border:1px solid rgba(212,175,106,.3);border-radius:8px;color:var(--stone);
+      padding:.6em .8em;font-size:.85rem}
+  input:focus{outline:none;border-color:var(--gold)}
+  button{background:none;border:1px solid rgba(212,175,106,.4);border-radius:8px;color:var(--gold);
+      padding:.55em 1.1em;font-size:.8rem;cursor:pointer;letter-spacing:.04em}
+  button:hover{border-color:var(--gold);background:rgba(212,175,106,.08)}
+  button:disabled{opacity:.5;cursor:default}
+  .note{font-size:.76rem;opacity:.8;min-height:1.2em;margin-top:.4rem}
+  .note.err{color:var(--err)}
+  .card{border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:1.1rem;margin-bottom:.9rem}
+  .stat{display:flex;justify-content:space-between;align-items:baseline;padding:.45em 0;
+      border-bottom:1px solid rgba(255,255,255,.06);font-size:.82rem}
+  .stat:last-child{border-bottom:none}
+  .stat b{color:var(--gold);font-size:1rem}
+  [hidden]{display:none!important}
+  .muted{opacity:.6;font-size:.72rem;margin-top:1.5rem;line-height:1.6}
+  code{background:rgba(255,255,255,.06);padding:.1em .4em;border-radius:4px;font-size:.78rem}
+</style>
+</head>
+<body>
+  <h1>EREBIEL — admin</h1>
+
+  <!-- Bu sayfa HİÇBİR mesaj İÇERİĞİ göstermez, sadece SAYILAR (bkz. public.admin_stats(),
+       supabase/migrations/0005_beta_kontrolleri.sql). is_admin=false olan bir hesapla "yetkisiz" hatası alınır. -->
+
+  <div id="signinBox">
+    <form id="signinForm">
+      <div class="row"><input type="email" id="adEmail" placeholder="e-posta" autocomplete="email" required></div>
+      <div class="row"><input type="password" id="adPassword" placeholder="şifre" autocomplete="current-password" required></div>
+      <button type="submit" id="adSubmit">Giriş yap</button>
+    </form>
+    <p class="note" id="adNote"></p>
+  </div>
+
+  <div id="statsBox" hidden>
+    <div class="card" id="statsCard"></div>
+
+    <div class="card">
+      <p style="margin-bottom:.7rem;font-size:.8rem;color:var(--gold)">Davet kodu üret</p>
+      <div class="row">
+        <input type="number" id="codeMaxUses" placeholder="kaç kişi kullanabilir (örn. 1)" min="1" value="1">
+        <button id="codeGen">Kod üret</button>
+      </div>
+      <p class="note" id="codeNote"></p>
+    </div>
+
+    <button id="adSignOut">Çıkış yap</button>
+  </div>
+
+  <p class="muted">
+    Bu sayfa kişisel içerik toplamaz, mesaj metni göstermez — sadece toplam/ortalama SAYILAR
+    (<code>public.admin_stats()</code>). Admin olmak için: <code>update public.profiles set is_admin = true
+    where username = '…';</code>
+  </p>
+
+<script type="module">
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+  const $=id=>document.getElementById(id);
+  let sb=null;
+  try{
+    const r=await fetch("/api/config");
+    if(!r.ok)throw new Error("config "+r.status);
+    const{supabaseUrl,supabaseAnonKey}=await r.json();
+    sb=createClient(supabaseUrl,supabaseAnonKey);
+  }catch(e){$("adNote").textContent="Supabase yapılandırması yüklenemedi.";$("adNote").classList.add("err");}
+
+  function note(el,msg,isError){el.textContent=msg||"";el.classList.toggle("err",!!isError);}
+
+  async function loadStats(){
+    note($("codeNote"),"");
+    try{
+      const{data,error}=await sb.rpc("admin_stats");
+      if(error)throw error;
+      $("statsCard").innerHTML=[
+        ["Toplam kullanıcı",data.totalUsers],
+        ["Günlük aktif kullanıcı",data.dailyActiveUsers],
+        ["1. gün geri dönüş",data.day1RetentionPct==null?"—":data.day1RetentionPct+"%"],
+        ["7. gün geri dönüş",data.day7RetentionPct==null?"—":data.day7RetentionPct+"%"],
+        ["Kullanıcı başına ort. mesaj",data.avgMessagesPerUser],
+      ].map(([k,v])=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`).join("")
+        +`<p class="muted">son güncelleme: ${new Date(data.generatedAt).toLocaleString("tr-TR")}</p>`;
+      $("signinBox").hidden=true;$("statsBox").hidden=false;
+    }catch(e){
+      const m=String(e?.message||"");
+      note($("adNote"),/not authorized/i.test(m)?"Bu hesap admin değil.":"Sayılar yüklenemedi: "+m,true);
+      $("statsBox").hidden=true;$("signinBox").hidden=false;
+      try{await sb.auth.signOut({scope:"local"});}catch(e2){}
+    }
+  }
+
+  $("signinForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const email=$("adEmail").value.trim(),password=$("adPassword").value;
+    if(!sb||!email||!password)return;
+    $("adSubmit").disabled=true;note($("adNote"),"Giriş yapılıyor…");
+    try{
+      const{error}=await sb.auth.signInWithPassword({email,password});
+      if(error)throw error;
+      await loadStats();
+    }catch(err){note($("adNote"),String(err?.message||"Giriş başarısız."),true);}
+    finally{$("adSubmit").disabled=false;}
+  });
+
+  $("adSignOut").addEventListener("click",async()=>{
+    try{await sb.auth.signOut({scope:"local"});}catch(e){}
+    $("statsBox").hidden=true;$("signinBox").hidden=false;
+    $("adEmail").value="";$("adPassword").value="";note($("adNote"),"");
+  });
+
+  $("codeGen").addEventListener("click",async()=>{
+    const n=Math.max(1,parseInt($("codeMaxUses").value,10)||1);
+    $("codeGen").disabled=true;note($("codeNote"),"Üretiliyor…");
+    try{
+      const{data,error}=await sb.rpc("generate_invite_code",{p_max_uses:n});
+      if(error)throw error;
+      note($("codeNote"),"Yeni kod: "+data);
+    }catch(e){note($("codeNote"),String(e?.message||"Üretilemedi."),true);}
+    finally{$("codeGen").disabled=false;}
+  });
+
+  (async()=>{
+    if(!sb)return;
+    const{data}=await sb.auth.getSession();
+    if(data?.session)await loadStats();
+  })();
+</script>
+</body>
+</html>
