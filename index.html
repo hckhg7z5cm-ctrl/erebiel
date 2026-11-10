@@ -1154,6 +1154,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     <p class="page-title" data-i18n="settings.title"></p>
     <div class="set-rows">
       <div class="set-row"><span class="set-label" data-i18n="settings.language"></span><select class="set-select" id="langPicker" data-i18n-attr="aria-label:settings.language"></select></div>
+      <p class="set-hint" data-i18n="settings.voiceNote"></p>
       <div class="set-row"><span class="set-label" data-i18n="settings.theme"></span><div class="seg"><button data-set-theme="dark" data-i18n="settings.dark"></button><button data-set-theme="light" data-i18n="settings.light"></button></div></div>
       <div class="set-row"><span class="set-label" data-i18n="settings.accent"></span><div class="seg"><button data-set-accent="gold" data-i18n="gold"></button><button data-set-accent="silver" data-i18n="silver"></button></div></div>
       <div class="set-sep"></div>
@@ -1164,7 +1165,18 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
       <p class="set-note" id="syncNote" aria-live="polite"></p>
       <p class="set-hint" data-i18n="settings.hint"></p>
       <div class="set-sep" id="acctManageSep" hidden></div>
+      <div class="set-row"><span></span><div class="seg"><button id="aboutOpen" data-i18n="settings.about"></button></div></div>
       <div class="set-row" id="acctManageRow" hidden><span></span><div class="seg"><button id="acctManageOpen" data-i18n="settings.manageAccount"></button></div></div>
+    </div>
+  </section>
+
+  <!-- about: FAZ 5 — Instagram menüsündeki "Hakkında" karşılığı -->
+  <section class="page" id="about" hidden>
+    <button class="page-back" data-close data-i18n-attr="aria-label:aria.back">‹</button>
+    <p class="page-title" data-i18n="about.title"></p>
+    <div class="set-rows">
+      <p class="set-hint" data-i18n="about.body"></p>
+      <div class="set-row"><span></span><div class="seg"><button id="aboutPrivacyBtn" data-i18n="about.privacy"></button></div></div>
     </div>
   </section>
 
@@ -1932,7 +1944,8 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     const light=root.getAttribute("data-theme")==="light",silver=root.getAttribute("data-accent")==="silver";
     document.querySelectorAll("[data-set-theme]").forEach(b=>b.classList.toggle("is-on",(b.getAttribute("data-set-theme")==="light")===light));
     document.querySelectorAll("[data-set-accent]").forEach(b=>b.classList.toggle("is-on",(b.getAttribute("data-set-accent")==="silver")===silver));
-    // FAZ 4: "Hesabı yönet" (dondur/sil) satırı sadece oturum açık kullanıcıya gösterilir.
+    // FAZ 4: "Hesabı yönet" (dondur/sil) satırı sadece oturum açık kullanıcıya gösterilir — backend'siz/
+    // işlevsiz buton gösterilmesin diye anonimde tamamen gizlenir.
     $("acctManageRow").hidden=!currentUser;$("acctManageSep").hidden=!currentUser;
   }
   function toggleMore(open){const o=open===undefined?moreSheet.hidden:open;moreSheet.hidden=!o;moreBtn.setAttribute("aria-expanded",String(o));}
@@ -3300,11 +3313,23 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     note(t(await deleteAllHistory()?"note.deleted":"note.deleteFailed"));
   });
   async function deleteAllHistory(){
+    // Oturum açık kullanıcıda, anonim (Redis/senkron-kod) akışının YANINDA, Postgres'teki sohbetler/mesajlar
+    // da silinir — ikisi birbirini dışlamaz, ikisi de "geçmişi sil" ile silinmesi beklenen yerler.
+    if(currentUser){
+      try{
+        const sb=await getSupabase();
+        if(sb){await sb.from("mesajlar").delete().eq("user_id",currentUser.id);await sb.from("sohbetler").delete().eq("user_id",currentUser.id);}
+      }catch(e){return false;}
+    }
     const code=syncCode(false);
     try{if(code)await historyCall(code,"delete");}catch(e){return false;}
     try{localStorage.removeItem(scopedKey(K_CHATS));localStorage.removeItem(scopedKey(K_GONE));}catch(e){}
     afterHistoryChange();return true;
   }
+
+  /* ---- FAZ 5: Hakkında ---- */
+  $("aboutOpen").addEventListener("click",()=>{openPage($("about"));setActive("");});
+  $("aboutPrivacyBtn").addEventListener("click",()=>{closePages();$("safety").classList.add("on");});
 
   /* ---- SAFETY ---- */
   $("infoDot").addEventListener("click",()=>$("safety").classList.add("on"));
