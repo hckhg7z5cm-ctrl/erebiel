@@ -162,37 +162,133 @@ hiçbir şey çalıştırılmadı. Her adım kendi commit'i olarak giris-sistemi
   da dahil — o yüzden ilk hesabını migration ÇALIŞMADAN ÖNCE ya da `invite_codes`'a elle bir satır
   ekleyerek oluşturman gerekebilir, bkz. migration'ın en üstündeki not).
 
-## Devam ediyor / sıradaki
+## Yapılanlar (commit sırasıyla) — FAZ 6
 
-FAZ 6 (karakterler, AGE_TIER) — sıradaki.
+13. `66c6d89` — `api/chat.js`: `AGE_TIER` (`teen_13_14`/`teen_15_17`/`adult`). Oturum açık kullanıcı
+    DB'nin garantisiyle (`profiles_min_age` ≥18) her zaman `adult`. Anonimde istemcinin beyan ettiği
+    doğum yılından hesaplanır; beyan yoksa en kısıtlayıcı varsayım. `teen_15_17` + ortaokul/5-8. sınıf
+    ipucu → `teen_13_14`'e düşer (yalnızca ZATEN teen beyan edenlerde, yetişkinlere uygulanmaz). Mirror
+    teen'e 403. Hepsi `CRISIS_GUIDE`/`CRISIS_CONDUCT`/`COMMON`/`systemBlocks()` DEĞİŞTİRİLMEDEN, sisteme
+    ek bir blok olarak eklendi (`node tools/verify-protected-chat.mjs check`: OK, her commit'te koşuldu).
+14. `ec23432` — Anonim akışta zorunlu, bir kerelik doğum yılı sorusu (`#ageGate`, `K_AGE`, öneksiz/cihaz
+    bazlı); Archon/Multivac/Mirror'a ilk dokunuşta açılır, oturum açık kullanıcıya hiç gösterilmez.
+    Teen'de oturum başında + her 20 kullanıcı mesajında bir "ben bir yapay zekayım" hatırlatma balonu
+    (deterministik UI mesajı, modele güvenilmez). 13-14 için sabit 60 dk/gün sınırı
+    (`TEEN_1314_DAILY_LIMIT_MIN`) — Zaman Yönetimi'nde değiştirilemez, dolunca yeni mesaj engellenir.
+    `api/config.js`: `TEST_MIN_AGE` ortam değişkeni (sadece test ortamı) anonim yaş sorusunun tabanını
+    (üretimde 13) düşürür — signUp'taki `MIN_AGE=18`'e DOKUNMAZ, ondan tamamen ayrı.
+15. `992c4a7` — `tools/character-safety-tests.mjs`: 18 test mesajı (manipülasyon, jailbreak, dalkavukluk,
+    kriz, teen — istenen 15'ten fazla). Gerçek Anthropic API'si gerektirir, BU ORTAMDA ÇALIŞTIRILAMADI;
+    `BASE_URL=... node tools/character-safety-tests.mjs` ile (vercel dev ya da canlı URL) sabah çalıştır.
 
-## Yapılamayanlar
+- **Karar (FAZ 6):** `TEST_MIN_AGE`'in ne anlama geldiği talimatta net değildi — iki okuma mümkündü: (a)
+  signUp'taki MIN_AGE=18'i test ortamında düşürmek (ama bu bir SQL CHECK constraint'i, ortam değişkeni
+  OKUYAMAZ, statik), ya da (b) anonim akıştaki yeni yaş-beyanı sorusunun tabanını düşürmek. (b)'yi
+  seçtim çünkü gerçekten uygulanabilir ve koddan sorulamadan en güvenli/tutarlı yorum buydu. **Eğer
+  kastedilen (a) ise** (signUp'ta gerçekten 13 yaşında hesap açılabilsin istiyorsan test projesinde),
+  bana söyle — `profiles_min_age` constraint'ini `current_setting()` ile yeniden yazan ayrı bir migration
+  gerekir, bu gece YAZILMADI.
+- **Karar (FAZ 6):** AGE_TIER anonim akışta kendi-beyanına dayanır (KYC/yaş doğrulaması YOK, MIN_AGE=18
+  signUp kontrolü de aynı şekilde kendi-beyanına dayanıyor zaten) — bu, projenin genel güven modeliyle
+  tutarlı, ama gerçek bir yaş GÜVENCESİ değildir, sadece iyi niyetli kullanıcıyı ve dikkatsiz
+  istemci-atlatmasını kapsar. Daha güçlü bir güvence (ID doğrulama vb.) bu gecenin kapsamı dışındaydı.
+- **Doğrulanmadı:** `SCHOOL_CLUE_1314` regex'i (ortaokul/5-8. sınıf ipuçları) gerçek kullanıcı
+  mesajlarıyla hiç denenmedi — yanlış pozitif/negatif oranı bilinmiyor, canlıda izlenmeli.
 
-(Atlanan adımlar buraya, nedeniyle.)
+## FAZ 7 — BAŞLANMADI (bilerek, en düşük öncelik, talimatta zaten "en sona")
 
-## Migration çalıştırma sırası (SEN çalıştıracaksın)
+Gece kapsamı FAZ 1-6 ve Beta kontrolleri oldu (bkz. yukarısı) — zaman/kapsam nedeniyle FAZ 7'ye (sosyal:
+profil, takip, gönderi, Keşfet, video) hiç başlanamadı. **Neden bilerek atlandı, "iki denemede
+çalışmadı" değil:** FAZ 7'nin "ZORUNLU güvenlik" maddeleri (şikayet/engelle/sessize al, içerik filtresi,
+moderasyon kuyruğu, teen gizlilik kuralları) gönderi/profil özellikleriyle AYNI ANDA gelmek zorunda —
+yarım, güvenlik tarafı eksik bir sosyal özellik canlıya çıkarsa (yanlışlıkla push edilirse) gerçek risk
+oluşturur. Onun yerine burada bir ŞEMA/PLAN taslağı bırakıyorum, kod yazılmadı:
+
+**Önerilen şema sırası (yeni migration'lar, 0006+):** `profiles`'a `bio`, `avatar_url`, `is_private`,
+`followers_count`/`following_count` (denormalize sayaç) eklenir → `follows` (follower_id, followed_id,
+status: pending/accepted — gizli hesap onayı için) → `posts` (user_id, image_path'ler bir depolama
+sağlayıcısına işaret eder, caption, created_at) → `likes`, `comments`, `saves` (post_id, user_id) →
+`reports` (reporter_id, target_type, target_id, reason, status) ve `blocks`/`mutes` (user_id,
+target_id) EN BAŞTAN, gönderilerle BİRLİKTE gelmeli, sonradan eklenecek bir "sonra yaparız" değil.
+RLS: teen hesaplar (`AGE_TIER`'dan değil, kayıt gerektirdiği için `profiles.birth_year`'dan — ama
+MIN_AGE=18 nedeniyle kayıtlı HER hesap zaten yetişkin; FAZ 7'nin teen görünürlük kuralları ("teen
+hesaplar gizli profil, Keşfet'te görünmez, takip etmediği yetişkinler yazamaz") sadece MIN_AGE
+DÜŞÜRÜLÜRSE anlam kazanır — bu da yukarıdaki TEST_MIN_AGE kararıyla doğrudan bağlantılı, önce o
+netleşmeli).
+
+**Depolama önerisi (fotoğraf/video için, maliyet tahminiyle):** Cloudflare R2 önerilir. Üç seçenek
+karşılaştırıldı (Kasım 2026 fiyatları): AWS S3 Standard ~$0.023/GB-ay + egress; Backblaze B2 en ucuz
+ham depolama (~$0.006/GB-ay), egress depolanan verinin 3 katına kadar ücretsiz, sonrası ~$0.005/GB;
+Cloudflare R2 ~$0.015/GB-ay depolama ama **egress her zaman ücretsiz**. Bir sosyal akış, depolamadan
+çok GÖRÜNTÜLEME (okuma/egress) ağırlıklıdır — her gönderi gösterimi bir indirmedir. Küçük ölçekte (ör.
+50 GB fotoğraf, ayda 500 GB görüntüleme) tahmini aylık maliyet: R2 ≈ 50×$0.015 ≈ **$0.75** (+okuma
+işlem ücreti, milyonda ~$0.36 — ihmal edilebilir); B2 ≈ 50×$0.006 + (500-150)×$0.005 ≈ $0.30+$1.75 ≈
+**$2.05** (150 GB'a kadar ücretsiz egress, üstü ücretli); S3 ≈ 50×$0.023 + 500×~$0.09 ≈ $1.15+$45 ≈
+**$46** (egress en pahalı seçenek, büyüme hızlı maliyetlenir). **Ölçek büyüdükçe R2'nin egress'siz
+modeli farkı katlanarak büyütür** — "tight budget" notuyla (roadmap hafızası) en uyumlu seçenek R2.
+Supabase Storage da bir seçenek (tek sağlayıcı, daha az entegrasyon) ama bu araştırmada ayrı/güncel
+fiyat bulunamadı — karar vermeden önce kendi Supabase planındaki depolama fiyatını kontrol et.
+Kaynaklar: Cloudflare R2/S3/Backblaze B2 2026 karşılaştırmaları (genel web araması, Kasım 2026).
+
+## Yapılamayanlar (toplu özet)
+
+- **Bildirimler (push):** altyapı yok (service worker, VAPID, sunucu gönderimi) — FAZ 5.
+- **Arşiv, Kaydedilenler:** "gönderi" kavramına bağlı, FAZ 7 henüz yok — FAZ 5/7.
+- **Ses ayarları:** ElevenLabs entegrasyonu henüz yok (roadmap: v1 sonrası) — FAZ 5.
+- **Yüz/ses/avatar-sağlayıcı kayıtlarının silinmesi:** bu veriler henüz hiçbir tabloda yok — FAZ 4.
+- **7-gün-önce/süre-bitti e-postalarının gerçek gönderimi:** taslak var, servise bağlanmadı — FAZ 4.
+- **`run_account_retention_sweep()`'in zamanlanması:** fonksiyon tanımlı, cron KURULMADI — FAZ 4.
+- **FAZ 7'nin tamamı** (profil, takip, gönderi, Keşfet, video, moderasyon) — yukarıdaki plan dışında
+  hiç kod yazılmadı, bilerek (bkz. yukarısı).
+- **Hiçbir migration (0001-0005) gerçekten çalıştırılıp test edilmedi** — hepsi mantık/sözdizimi
+  düzeyinde gözden geçirildi ama gerçek bir Supabase projesinde doğrulanmadı (talimat gereği).
+- **Görsel/UX testi yapılamadı** — tarayıcıda gerçekten açıp denemek için Supabase/Vercel/gerçek bir
+  sunucu gerekiyordu, bunlar çalıştırılamadı; tüm değişiklikler sözdizimi kontrolü (node --check,
+  script-only syntax check) ve mantık incelemesiyle doğrulandı, GÖRSEL olarak değil.
+
+## Migration çalıştırma sırası (SEN çalıştıracaksın, SIRAYLA, hiçbiri bu gece çalıştırılmadı)
 
 1. `0001_profiles.sql`
 2. `0002_sohbetler_mesajlar.sql`
 3. `0003_user_memories.sql`
 4. `0004_dondur_sil.sql` (0001'den sonra; profiles'a kolon ekler + 3 fonksiyon tanımlar)
-(hiçbiri bu gece ÇALIŞTIRILMADI — hepsi SQL Editor'da sırayla senin çalıştırmanı bekliyor.)
+5. `0005_beta_kontrolleri.sql` (0001'den sonra; profiles.is_admin + beta_config + invite_codes +
+   handle_new_user() güncellemesi + 2 RPC) — **DİKKAT:** bundan sonra HERKES (ilk admin dahil) kayıt
+   olmak için bir davet koduna ihtiyaç duyar; migration'ın en üstündeki notu oku.
 
-## Bana düşen adımlar
+## Bana düşen adımlar (hepsi)
 
-- `0004_dondur_sil.sql`'i Supabase SQL Editor'da çalıştır (0001'den sonra).
+- `0004_dondur_sil.sql` ve `0005_beta_kontrolleri.sql`'i sırayla Supabase SQL Editor'da çalıştır.
+- `0005`'ten sonra: `insert into invite_codes(code,max_uses) values ('İLKKODUN',1);` → o kodla kendi
+  hesabını normal kayıt formundan aç → `update profiles set is_admin=true where username='...';`.
 - `public.run_account_retention_sweep()`'i GÜNLÜK çağıracak bir zamanlayıcı kur (Supabase pg_cron:
   `select cron.schedule('account-retention','0 3 * * *','select public.run_account_retention_sweep();');`
   ya da Vercel Cron + küçük bir endpoint). Kurulmadıkça dondurma süresi bitip 30 gün giriş olmayan
   hesaplar OTOMATİK silinmez (fonksiyon tanımlı ama tetiklenmiyor).
-- `delete_my_account()`'un gerçek bir Supabase projesinde çalıştığını DOĞRULA (bkz. yukarıdaki "Karar"
-  notu — `auth.users` üzerinde DELETE yetkisi varsayıldı, test edilmedi).
+- `delete_my_account()`'un gerçek bir Supabase projesinde çalıştığını DOĞRULA (bkz. FAZ 4 "Karar" notu).
+- `handle_new_user()`'ın davet-kodu hatalarının signUp cevabında TAM OLARAK nasıl göründüğünü gözlemle;
+  gerekirse `authErrorMessage()`'daki (index.html) regex'leri ayarla.
+- `TEST_MIN_AGE` kararımı (yukarıdaki FAZ 6 notu) onayla ya da düzelt.
+- `tools/character-safety-tests.mjs`'i `vercel dev` ya da canlı bir URL'ye karşı çalıştır, cevapları
+  gözden geçir (ben otomatik "geçti" demedim, insan/LLM hakem gerekiyor).
 - İstersen `supabase/emails/*.md` taslaklarını bir e-posta servisine (Supabase SMTP/Resend/Postmark) bağla.
 - `assets/characters/` altına gerçek `collage-1..N.webp`, `archon.webp`, `multivac.webp`, `mirror.webp`
   görsellerini ekle (FAZ 2) — kod değişikliği gerekmez, otomatik görünür.
+- `PRIVACY_DRAFT.md`'yi bir avukata gönder, onaylanan dili asıl gizlilik metnine ekle.
+- FAZ 7'ye başlamadan önce: yukarıdaki şema planını gözden geçir, depolama sağlayıcısına (R2 önerildi)
+  karar ver, TEST_MIN_AGE/MIN_AGE netliğini sağla (teen görünürlük kuralları buna bağlı).
 
 ## Test komutları
 
 - `node tools/verify-protected-chat.mjs check` — `api/chat.js`'teki kriz/güvenlik/dil bloklarının
-  birebir kaldığını doğrular. Bu dosyaya dokunan HER commit'ten sonra çalıştırılmalı.
-- `node tools/test-account-delete.mjs` — FAZ 4 silme/dondurma mantığının sahte veritabanı testi (8 test).
+  birebir kaldığını doğrular. Bu dosyaya dokunan HER commit'ten sonra çalıştırıldı, hepsi OK verdi.
+- `node tools/test-account-delete.mjs` — FAZ 4 silme/dondurma mantığının sahte veritabanı testi (8/8).
+- `BASE_URL=http://localhost:3000 node tools/character-safety-tests.mjs` — FAZ 6, 18 karakter güvenlik
+  testi (gerçek API/sunucu gerekir, bu ortamda çalıştırılamadı).
+
+## Özet
+
+giris-sistemi dalına 15 commit push'landı (FAZ 2, 3, 4, 5, Beta kontrolleri, FAZ 6 — tamamı; FAZ 7
+bilerek başlanmadı, plan yukarıda). main'e, canlıya, Supabase/Vercel'e HİÇBİR ŞEY dokunmadı/çalıştırmadı.
+Kriz/güvenlik/dil kuralları her adımda doğrulanarak birebir aynı kaldı. İki yeni migration (0004, 0005)
+senin çalıştırmanı bekliyor; sırası ve sonrasında yapman gerekenler yukarıda.
