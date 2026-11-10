@@ -1176,6 +1176,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
       <div class="set-sep" id="acctManageSep" hidden></div>
       <div class="set-row" id="acctSettingsRow" hidden><span></span><div class="seg"><button id="acctSettingsOpen" data-i18n="settings.accountSettings"></button></div></div>
       <div class="set-row" id="privacyCenterRow" hidden><span></span><div class="seg"><button id="privacyCenterOpen" data-i18n="settings.privacyCenter"></button></div></div>
+      <div class="set-row"><span></span><div class="seg"><button id="devicePermsOpen" data-i18n="settings.devicePermissions"></button></div></div>
       <div class="set-row"><span></span><div class="seg"><button id="aboutOpen" data-i18n="settings.about"></button></div></div>
       <div class="set-row" id="acctManageRow" hidden><span></span><div class="seg"><button id="acctManageOpen" data-i18n="settings.manageAccount"></button></div></div>
     </div>
@@ -1233,6 +1234,17 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
       <p class="set-label" data-i18n="privacyCenter.historyTitle"></p>
       <div class="set-row"><span></span><div class="seg"><button id="pcHistoryDelete" data-i18n="settings.delete"></button></div></div>
       <p class="set-note" id="pcNote" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <!-- devicePerms: FAZ 5 — tarayıcının Permissions API'si izin VERMEZ/ALMAZ, sadece durumu gösterir. -->
+  <section class="page" id="devicePerms" hidden>
+    <button class="page-back" data-close data-i18n-attr="aria-label:aria.back">‹</button>
+    <p class="page-title" data-i18n="devicePerms.title"></p>
+    <div class="set-rows">
+      <div class="set-row"><span class="set-label" data-i18n="devicePerms.cameraLabel"></span><span class="set-note" id="dpCameraState"></span></div>
+      <p class="set-hint" data-i18n="devicePerms.note"></p>
+      <p class="set-hint" data-i18n="devicePerms.changeHint"></p>
     </div>
   </section>
 
@@ -3492,6 +3504,19 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     const ok=await deleteAllHistory();
     $("pcNote").textContent=t(ok?"note.deleted":"note.deleteFailed");
     if(!ok)$("pcNote").classList.add("is-error");
+  });
+
+  /* ---- FAZ 5: Cihaz izinleri — yalnızca DURUMU gösterir, izin vermez/almaz (tarayıcılar bunu JS'e açmaz) ---- */
+  $("devicePermsOpen").addEventListener("click",async()=>{
+    const el=$("dpCameraState");el.textContent=t("devicePerms.state.unknown");
+    try{
+      if(navigator.permissions?.query){
+        const st=await navigator.permissions.query({name:"camera"});
+        const known=["granted","denied","prompt"].includes(st.state);
+        el.textContent=t(known?"devicePerms.state."+st.state:"devicePerms.state.unknown");
+      }
+    }catch(e){}
+    openPage($("devicePerms"));setActive("");
   });
 
   /* ---- FAZ 5: Hakkında ---- */
