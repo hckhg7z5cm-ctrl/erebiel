@@ -3,7 +3,7 @@
 // isteği alıp Claude'a iletir ve cevabı geri döndürür.
 
 import Anthropic from "@anthropic-ai/sdk";
-import { rejectIfLimited, validCode, saveHistory, HISTORY_PERSONAS } from "./_redis.js";
+import { rejectIfLimited, rejectIfUserLimited, validCode, saveHistory, HISTORY_PERSONAS } from "./_redis.js";
 import { userClient, saveTurnPg } from "./_supabase.js";
 
 // Karakter promptları burada, sunucuda durur: tarayıcı sadece persona adını gönderir,
@@ -280,9 +280,16 @@ export default async function handler(req, res) {
 
   log.persona = persona;
   log.turns = messages.length;
-  // Supabase'in auth.getUser() çağrısı ağ üzerinden doğrular; Anthropic isteğiyle PARALEL başlatılır ki
-  // oturum kontrolü ilk token süresine eklenmesin — sonucu ancak kayıt kararı verirken bekleriz (aşağıda).
-  const authPromise = userClient(req);
+  // Supabase'in auth.getUser() çağrısı ağ üzerinden doğrular. Oturum açık (uid'i olan) istekler için BETA
+  // günlük mesaj tavanını Anthropic'i hiç çağırmadan kontrol etmemiz gerektiğinden (aksi hâlde tavana
+  // ulaşmış biri için bile tokenlara para harcanır) burada ERKEN beklenir — anonim istekler bundan
+  // etkilenmez (auth null döner, hemen devam eder; aşağıdaki "ilk tokene eklenmesin" yorumunun ima ettiği
+  // tam paralellik artık SADECE oturum açık istekler için kısmen geçerli değil, bu kasıtlı bir ödün).
+  const auth = await userClient(req);
+  if (auth && (await rejectIfUserLimited(auth.user.id, res))) {
+    console.log(JSON.stringify({ ...log, status: 429, code: "daily_limit" }));
+    return;
+  }
   const system = systemBlocks(SYSTEM_PROMPTS[persona], lang);
   const maxTokens = pickMaxTokens(messages);
   const { thinking, effort } = pickThinking(messages);
@@ -341,8 +348,8 @@ export default async function handler(req, res) {
 
   // Oturum (Supabase) varsa geçmiş Postgres'e, yoksa (anonim) eskisi gibi Redis'e (senkron kod) kaydedilir —
   // ikisi birbirinin YERİNE geçmez, hangisi kullanılacağı bu istekte kimliğin olup olmadığına bakılarak seçilir.
-  // Mirror ikisinde de yok (HISTORY_PERSONAS'ta değil): hiçbir koşulda saklanmaz.
-  const auth = await authPromise;
+  // Mirror ikisinde de yok (HISTORY_PERSONAS'ta değil): hiçbir koşulda saklanmaz. ("auth" artık yukarıda
+  // erken beklendi, beta günlük limit kontrolü için — burada tekrar await edilmiyor.)
   const usePg = Boolean(text && auth && HISTORY_PERSONAS.includes(persona));
   let sohbetIdOut = typeof sohbetId === "string" && sohbetId ? sohbetId : null;
   let saved = false;

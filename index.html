@@ -1330,6 +1330,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
         <div class="set-row"><input class="set-input" type="password" id="suPassword" autocomplete="new-password" required minlength="8" data-i18n-attr="placeholder:auth.password;aria-label:auth.password"></div>
         <div class="set-row"><input class="set-input" type="text" id="suUsername" dir="ltr" autocomplete="off" spellcheck="false" maxlength="20" required data-i18n-attr="placeholder:auth.username;aria-label:auth.username"></div>
         <div class="set-row"><input class="set-input" type="number" id="suBirthYear" inputmode="numeric" required data-i18n-attr="placeholder:auth.birthYear;aria-label:auth.birthYear"></div>
+        <div class="set-row"><input class="set-input" id="suInviteCode" dir="ltr" autocomplete="off" spellcheck="false" maxlength="16" required data-i18n-attr="placeholder:auth.inviteCode;aria-label:auth.inviteCode"></div>
         <div class="set-row"><span></span><div class="seg"><button type="submit" id="suSubmit" data-i18n="auth.submit.signup"></button></div></div>
         <p class="set-hint"><a href="#" id="toSignin1" data-i18n="auth.switch.toSignin"></a></p>
       </form>
@@ -2265,6 +2266,12 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     const m=String(e&&e.message||"");
     if(/username/i.test(m)&&/unique|duplicate/i.test(m))return t("auth.err.usernameTaken");
     if(/profiles_min_age/i.test(m))return t("auth.err.underage",{age:MIN_AGE});
+    // BETA: handle_new_user() trigger'ının (0005_beta_kontrolleri.sql) fırlattığı hatalar. Supabase/GoTrue
+    // sürümüne göre tam metin değişebilir (bazı sürümler ham Postgres mesajını, bazıları genel "Database
+    // error saving new user" metnini döner) — o yüzden ham koda GÖRE değil, İÇERİP içermediğine bakılır.
+    if(/invite_code_required/i.test(m))return t("auth.err.inviteRequired");
+    if(/invite_code_invalid/i.test(m))return t("auth.err.inviteInvalid");
+    if(/beta_user_cap_reached/i.test(m))return t("auth.err.userCap");
     return m||t("auth.err.generic");
   }
   $("authSignin").addEventListener("submit",async e=>{
@@ -2284,17 +2291,20 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     e.preventDefault();if(authBusy)return;
     const email=$("suEmail").value.trim(),password=$("suPassword").value;
     const username=$("suUsername").value.trim().toLowerCase(),birthYear=parseInt($("suBirthYear").value,10);
-    if(!email||!password||!username||!birthYear){authNote(t("auth.err.required"),true);return;}
+    const inviteCode=$("suInviteCode").value.trim().toUpperCase();
+    if(!email||!password||!username||!birthYear||!inviteCode){authNote(t("auth.err.required"),true);return;}
     if(!/^[a-z0-9_]{3,20}$/.test(username)){authNote(t("auth.err.usernameInvalid"),true);return;}
     // istemci tarafı MIN_AGE ön kontrolü: hızlı geri bildirim. Asıl zorlayan yer DB'deki CHECK constraint'tir,
-    // bu satır atlatılsa (DevTools'tan) bile signUp sunucuda başarısız olur.
+    // bu satır atlatılsa (DevTools'tan) bile signUp sunucuda başarısız olur. Davet kodu ve BETA kullanıcı
+    // tavanı da aynı şekilde: istemci burada hiçbir şeyi ÖNCEDEN doğrulamaz, tek gerçek kontrol
+    // handle_new_user() trigger'ında (0005_beta_kontrolleri.sql) — atomik, atlatılamaz.
     if(birthYear>new Date().getFullYear()-MIN_AGE){authNote(t("auth.err.underage",{age:MIN_AGE}),true);return;}
     setAuthBusy(true);
     try{
       const sb=await getSupabase();if(!sb)throw new Error(t("auth.err.generic"));
       const{data:avail}=await sb.rpc("is_username_available",{candidate:username});
       if(avail===false){authNote(t("auth.err.usernameTaken"),true);setAuthBusy(false);return;}
-      const{error}=await sb.auth.signUp({email,password,options:{data:{username,birth_year:birthYear}}});
+      const{error}=await sb.auth.signUp({email,password,options:{data:{username,birth_year:birthYear,invite_code:inviteCode}}});
       if(error)throw error;
       authMode("signin");authNote(t("auth.confirmSent"));
     }catch(err){authNote(authErrorMessage(err),true);}

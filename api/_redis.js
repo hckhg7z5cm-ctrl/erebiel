@@ -113,6 +113,42 @@ export async function rejectIfLimited(req, res) {
   return true;
 }
 
+// ---- BETA: kullanıcı başına günlük mesaj limiti ----
+// Yukarıdaki IP bazlı rateLimit'in YANINDA çalışır, onun yerine geçmez — bu, OTURUM AÇIK (uid'i olan)
+// kullanıcılar için ayrı bir günlük tavandır (aynı IP'yi paylaşan birden fazla hesabı ya da IP değiştiren
+// aynı hesabı da kapsasın diye). TEK SABİT: BETA_DAILY_MSG_LIMIT (ortam değişkeni, yoksa 40). beta/maliyet
+// kontrolü amaçlıdır; supabase/migrations/0005_beta_kontrolleri.sql'deki beta_config.daily_message_limit
+// SADECE admin panelinde GÖSTERİLİR — ikisi değişirse EL İLE senkron tutulmalı (MIN_AGE'deki gibi).
+const PER_USER_PER_DAY = Number(process.env.BETA_DAILY_MSG_LIMIT) || 40;
+
+// null → izin var; true → tavana ulaşıldı (429 zaten yazılmıştır)
+export async function rejectIfUserLimited(uid, res) {
+  if (!uid) return false;
+  const now = Date.now();
+  const day = new Date(now).toISOString().slice(0, 10);
+  const key = `rl:u:${uid}:${day}`;
+  let count;
+  if (REDIS_URL && now >= redisDownUntil) {
+    try {
+      [count] = await countWithRedis([[key, 90000]]);
+    } catch (e) {
+      redisDownUntil = now + REDIS_COOLDOWN_MS;
+      console.error("user rate limit: redis unavailable, using in-memory counter for 30s:", e.message);
+    }
+  }
+  if (count === undefined) [count] = countInMemory([[key, 90000]]);
+  if (count > PER_USER_PER_DAY) {
+    const secondsToMidnight = Math.ceil((Date.parse(day + "T00:00:00Z") + 86400000 - now) / 1000);
+    res.setHeader("Retry-After", String(secondsToMidnight));
+    // Gövde kasıtlı olarak IP limitiyle AYNI şekli taşır: istemci zaten status===429'u "rate" (hız sınırı)
+    // olarak ele alıp karakterin sesiyle nazik bir mesaj gösteriyor (err.rate.archon/multivac, index.html) —
+    // ayrı bir istemci değişikliği GEREKMEDİ.
+    res.status(429).json({ error: "Bugünlük mesaj sınırına ulaştın. Yarın tekrar buradayız.", retryAfter: secondsToMidnight, code: "daily_limit" });
+    return true;
+  }
+  return false;
+}
+
 // ---- Sohbet geçmişi ----
 // Kimlik: tarayıcının ürettiği gizli senkron kodu (Crockford base32, 20 karakter ≈ 100 bit).
 // Redis'te kodun kendisi değil SHA-256 özeti anahtar olur. Son kullanımdan 90 gün sonra silinir.
