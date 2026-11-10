@@ -1164,6 +1164,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
       <div class="set-row"><span class="set-label" data-i18n="settings.history"></span><div class="seg"><button id="historyDelete" data-i18n="settings.delete"></button></div></div>
       <p class="set-note" id="syncNote" aria-live="polite"></p>
       <p class="set-hint" data-i18n="settings.hint"></p>
+      <div class="set-row"><span></span><div class="seg"><button id="timeManageOpen" data-i18n="settings.timeManagement"></button></div></div>
       <div class="set-sep" id="acctManageSep" hidden></div>
       <div class="set-row" id="acctSettingsRow" hidden><span></span><div class="seg"><button id="acctSettingsOpen" data-i18n="settings.accountSettings"></button></div></div>
       <div class="set-row"><span></span><div class="seg"><button id="aboutOpen" data-i18n="settings.about"></button></div></div>
@@ -1194,6 +1195,18 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
         <div class="set-row"><span></span><div class="seg"><button type="submit" id="asPasswordSubmit" data-i18n="acctSettings.password.submit"></button></div></div>
         <p class="set-note" id="asPasswordNote" aria-live="polite"></p>
       </form>
+    </div>
+  </section>
+
+  <!-- timeManage: FAZ 5 — günlük süre + hatırlatma. Tamamen cihazda, hesap gerektirmez. -->
+  <section class="page" id="timeManage" hidden>
+    <button class="page-back" data-close data-i18n-attr="aria-label:aria.back">‹</button>
+    <p class="page-title" data-i18n="time.title"></p>
+    <div class="set-rows">
+      <p class="set-note" id="timeTodayText" aria-live="polite"></p>
+      <div class="set-row"><input class="set-input" type="number" id="timeLimitInput" inputmode="numeric" min="1" max="1440" data-i18n-attr="placeholder:time.limitLabel;aria-label:time.limitLabel"><div class="seg"><button id="timeLimitSave" data-i18n="time.limitSave"></button></div></div>
+      <p class="set-hint" data-i18n="time.limitLabel"></p>
+      <p class="set-note" id="timeSaveNote" aria-live="polite"></p>
     </div>
   </section>
 
@@ -1733,14 +1746,14 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
   /* ---- HOME + conversations ---- */
   const brandBtn=$("brand"),inviteEl=$("invite");
   const K_VISIT="erebiel-last-visit",K_CHATS="erebiel-chats",K_CHAT_OLD="erebiel-last-chat",NAMES={archon:"Archon",multivac:"Multivac"};
-  const MAX_CHATS=40,K_GONE="erebiel-chats-deleted",K_PROFILE="erebiel-profile";
+  const MAX_CHATS=40,K_GONE="erebiel-chats-deleted",K_PROFILE="erebiel-profile",K_TIME="erebiel-time-usage";
   // FAZ 3: aynı cihazda birden çok hesap. currentUser burada (gerçek kullanımından önce) tanımlanır ki
   // load()/store() onu güvenle okuyabilsin. Supabase oturum durumu bunu daha aşağıda (AUTH bölümü) günceller.
   let currentUser=null;
   // Hesap bazlı (profil, sohbet geçmişi cache'i, silinen-sohbet işaretleri) anahtarlar oturum açık kullanıcıya
   // göre öneklenir; anonim kullanımda (currentUser yok) anahtarlar eskisiyle BİREBİR AYNI kalır — mevcut
   // anonim akış ve verisi hiç etkilenmez. K_VISIT ve K_SYNC kasıtlı olarak önekLENMEZ (cihaz bazlı kalır).
-  const ACCOUNT_SCOPED_KEYS=new Set([K_CHATS,K_GONE,K_PROFILE]);
+  const ACCOUNT_SCOPED_KEYS=new Set([K_CHATS,K_GONE,K_PROFILE,K_TIME]);
   function scopedKey(k){return currentUser&&ACCOUNT_SCOPED_KEYS.has(k)?"acct:"+currentUser.id+":"+k:k;}
   function load(k){try{return JSON.parse(localStorage.getItem(scopedKey(k)));}catch(e){return null;}}
   function store(k,v){try{localStorage.setItem(scopedKey(k),JSON.stringify(v));return true;}catch(e){return false;}}
@@ -3354,6 +3367,47 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     try{localStorage.removeItem(scopedKey(K_CHATS));localStorage.removeItem(scopedKey(K_GONE));}catch(e){}
     afterHistoryChange();return true;
   }
+
+  /* ---- FAZ 5: Zaman yönetimi — tamamen cihazda, hesaba göre öneklenir (K_TIME), hesap gerektirmez ----
+     {date:"YYYY-MM-DD", ms, limitMin, warned} — warned, aynı gün aynı limit için tekrar tekrar hatırlatma
+     göstermemek için (sekme açık kalsa bile günde bir kez). Sayfa görünür olduğu sürece 30 sn'de bir
+     güncellenir; arka planda/sekme pasifken sayılmaz (document.visibilityState). */
+  function todayStr(){return new Date().toISOString().slice(0,10);}
+  function getTimeUsage(){
+    const v=load(K_TIME);const today=todayStr();
+    if(!v||typeof v!=="object"||v.date!==today)return{date:today,ms:0,limitMin:v&&typeof v==="object"?v.limitMin:null,warned:false};
+    return v;
+  }
+  let timeUsage=getTimeUsage(),timeTickStart=document.visibilityState==="visible"?Date.now():null;
+  document.addEventListener("visibilitychange",()=>{
+    if(document.visibilityState==="visible")timeTickStart=Date.now();
+    else{tickTimeUsage();timeTickStart=null;}
+  });
+  function tickTimeUsage(){
+    if(timeTickStart==null)return;
+    const now=Date.now(),delta=now-timeTickStart;timeTickStart=now;
+    const today=todayStr();
+    if(timeUsage.date!==today)timeUsage={date:today,ms:0,limitMin:timeUsage.limitMin,warned:false};
+    timeUsage.ms+=delta;store(K_TIME,timeUsage);
+    if(timeUsage.limitMin&&!timeUsage.warned&&timeUsage.ms>=timeUsage.limitMin*60000){
+      timeUsage.warned=true;store(K_TIME,timeUsage);
+      toast(t("time.reminder",{min:Math.round(timeUsage.ms/60000)}));
+    }
+  }
+  setInterval(tickTimeUsage,30000);
+  $("timeManageOpen").addEventListener("click",()=>{
+    timeUsage=getTimeUsage();
+    $("timeTodayText").textContent=t("time.today",{min:Math.round(timeUsage.ms/60000)});
+    $("timeLimitInput").value=timeUsage.limitMin||"";
+    $("timeSaveNote").textContent="";
+    openPage($("timeManage"));setActive("");
+  });
+  $("timeLimitSave").addEventListener("click",()=>{
+    const raw=$("timeLimitInput").value.trim();
+    const n=raw?Math.max(1,Math.min(1440,parseInt(raw,10)||0)):null;
+    timeUsage=getTimeUsage();timeUsage.limitMin=n;timeUsage.warned=false;store(K_TIME,timeUsage);
+    $("timeSaveNote").textContent=t("time.limitSaved");
+  });
 
   /* ---- FAZ 5: Hakkında ---- */
   $("aboutOpen").addEventListener("click",()=>{openPage($("about"));setActive("");});
