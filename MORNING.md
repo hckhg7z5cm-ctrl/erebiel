@@ -132,9 +132,39 @@ hiçbir şey çalıştırılmadı. Her adım kendi commit'i olarak giris-sistemi
   edemeden (Supabase/Vercel çalıştırılamıyor, sadece statik dosya okunabiliyor) riske atmak yerine
   işlevsel tamlık tercih edildi; tasarım zaten "benim" (kullanıcının) olacak (FAZ 7 notu).
 
+## Yapılanlar (commit sırasıyla) — BETA
+
+11. `205d5b3` — `0005_beta_kontrolleri.sql` (ÇALIŞTIRILMADI): `profiles.is_admin`, `beta_config`,
+    `invite_codes`; `handle_new_user()` artık davet kodunu atomik tüketiyor + toplam kullanıcı tavanını
+    kontrol ediyor. `api/_redis.js`: `rejectIfUserLimited` (oturum açık kullanıcı için günlük mesaj
+    tavanı, `BETA_DAILY_MSG_LIMIT`). `api/chat.js`: bu kontrol Anthropic çağrılmadan önce yapılsın diye
+    auth erken beklendi (**kriz/güvenlik/dil blokları DOKUNULMADI** — `node tools/verify-protected-chat.mjs
+    check` ile doğrulandı). Kayıt formuna davet kodu alanı eklendi.
+12. `7b0118f` — `admin.html` (`/admin`, vercel.json rewrite): sadece admin, sadece SAYILAR
+    (`admin_stats()` RPC — mesaj içeriği YOK). Aynı sayfadan davet kodu üretimi. `PRIVACY_DRAFT.md`
+    taslağı (siteye konmadı, uzman onayı notuyla).
+
+- **Karar (Beta):** Davet kodu + kullanıcı tavanı kontrolü istemci tarafında DEĞİL, veritabanı
+  trigger'ında (`handle_new_user()`, atomik `UPDATE...WHERE used_count < max_uses`) zorunlu kılındı.
+  **Neden:** MIN_AGE'de zaten kurulu olan desenle tutarlı — istemci kontrolü DevTools'tan atlatılabilir,
+  DB seviyesinde atlatılamaz.
+- **Karar (Beta):** `/admin` sayfası YENİ bir backend endpoint'i ya da service_role KULLANMADAN, admin-
+  gated bir SECURITY DEFINER RPC (`admin_stats()`) ile yapıldı — FAZ 4'teki `delete_my_account()` ile
+  aynı mimari tercih (service_role'den kaçınma).
+- **Doğrulanmadı:** `handle_new_user()`'ın fırlattığı özel hataların (`invite_code_required` vb.)
+  Supabase/GoTrue'nun signUp cevabında TAM OLARAK hangi metinle göründüğü (sürüme göre ham Postgres
+  mesajı ya da genel "Database error saving new user" olabilir) test edilmeden kesin değil;
+  `authErrorMessage()` regex'leri ham metni İÇERİYOR diye eşleştiriyor, ama ilk gerçek denemede
+  gözlemlenip gerekirse ayarlanmalı.
+- **Bana düşen (Beta, ek):** `0005_beta_kontrolleri.sql`'i çalıştırdıktan sonra kendi hesabını admin yap
+  (migration içindeki SQL yorumunda örnek var) ve en az bir davet kodu üret (admin.html'den ya da
+  `select generate_invite_code(5);` ile) — kod üretilmeden HİÇ KİMSE kayıt olamaz (ilk admin hesabı
+  da dahil — o yüzden ilk hesabını migration ÇALIŞMADAN ÖNCE ya da `invite_codes`'a elle bir satır
+  ekleyerek oluşturman gerekebilir, bkz. migration'ın en üstündeki not).
+
 ## Devam ediyor / sıradaki
 
-Beta kontrolleri — sıradaki.
+FAZ 6 (karakterler, AGE_TIER) — sıradaki.
 
 ## Yapılamayanlar
 

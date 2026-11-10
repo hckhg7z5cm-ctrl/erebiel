@@ -3,9 +3,12 @@
 -- fonksiyonunu DEĞİŞTİRİR — mevcut davranışı korur, üstüne iki kontrol ekler).
 --
 -- NE YAPAR (BETA KONTROLLERİ):
---  - profiles.is_admin: /admin sayfasını görebilecek kullanıcılar. HİÇBİR satırda otomatik TRUE olmaz —
---    bu migration'dan sonra SEN kendi hesabını elle admin yapmalısın:
+--  - ÖNEMLİ — İLK HESABIN (senin): bu migration'dan SONRA her kayıt, geçerli bir davet kodu ister —
+--    senin de dahil. Önce elle bir kod ekle, SONRA kendi hesabını normal kayıt formundan oluştur:
+--      insert into public.invite_codes (code, max_uses) values ('ILKKOD01', 1);
+--    Kayıt olduktan sonra kendini admin yap:
 --      update public.profiles set is_admin = true where username = '<kendi kullanıcı adın>';
+--  - profiles.is_admin: /admin sayfasını görebilecek kullanıcılar. HİÇBİR satırda otomatik TRUE olmaz.
 --  - public.beta_config: tek satırlık ayarlar (key/value jsonb). Bu migration iki satır ekler:
 --    'max_users' (toplam kullanıcı tavanı) ve 'daily_message_limit' (SADECE GÖRÜNTÜLEME/admin paneli
 --    içindir — gerçek uygulanan sınır api/_redis.js'teki BETA_DAILY_MSG_LIMIT ortam değişkenidir/sabitidir;
