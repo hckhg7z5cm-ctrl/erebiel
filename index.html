@@ -396,6 +396,14 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
   .acct-email{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:14rem}
   .acct-tag{font-size:.58rem;letter-spacing:.14em;color:var(--accent);text-transform:uppercase;flex:none}
   html[data-theme="light"] .acct-row{background:rgba(0,0,0,.03)}
+  .pc-mem-list{list-style:none;display:flex;flex-direction:column;gap:.5rem;width:100%}
+  .pc-mem-row{display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem;padding:.5em .7em;border-radius:10px;
+      background:rgba(255,255,255,.04);font-size:.7rem;line-height:1.5;color:var(--stone)}
+  .pc-mem-row .pc-mem-text{flex:1;overflow:hidden}
+  .pc-mem-row .pc-mem-persona{display:block;font-size:.6rem;letter-spacing:.1em;color:var(--accent);text-transform:uppercase}
+  .pc-mem-row button{flex:none;background:none;border:none;cursor:pointer;color:var(--silver);font-size:.68rem;padding:.2em .4em}
+  .pc-mem-row button:hover{color:var(--accent)}
+  html[data-theme="light"] .pc-mem-row{background:rgba(0,0,0,.03)}
 
   /* ---------- NAVIGATION: icon rail (desktop) · tab bar (mobile) ---------- */
   .nav-item{position:relative;display:grid;place-items:center;width:40px;height:40px;background:none;border:none;border-radius:10px;cursor:pointer;padding:0;
@@ -1167,6 +1175,7 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
       <div class="set-row"><span></span><div class="seg"><button id="timeManageOpen" data-i18n="settings.timeManagement"></button></div></div>
       <div class="set-sep" id="acctManageSep" hidden></div>
       <div class="set-row" id="acctSettingsRow" hidden><span></span><div class="seg"><button id="acctSettingsOpen" data-i18n="settings.accountSettings"></button></div></div>
+      <div class="set-row" id="privacyCenterRow" hidden><span></span><div class="seg"><button id="privacyCenterOpen" data-i18n="settings.privacyCenter"></button></div></div>
       <div class="set-row"><span></span><div class="seg"><button id="aboutOpen" data-i18n="settings.about"></button></div></div>
       <div class="set-row" id="acctManageRow" hidden><span></span><div class="seg"><button id="acctManageOpen" data-i18n="settings.manageAccount"></button></div></div>
     </div>
@@ -1207,6 +1216,23 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
       <div class="set-row"><input class="set-input" type="number" id="timeLimitInput" inputmode="numeric" min="1" max="1440" data-i18n-attr="placeholder:time.limitLabel;aria-label:time.limitLabel"><div class="seg"><button id="timeLimitSave" data-i18n="time.limitSave"></button></div></div>
       <p class="set-hint" data-i18n="time.limitLabel"></p>
       <p class="set-note" id="timeSaveNote" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <!-- privacyCenter: FAZ 5 — Gizlilik Merkezi. Yalnızca oturum açık kullanıcıya gösterilir. -->
+  <section class="page page-scroll" id="privacyCenter" hidden>
+    <button class="page-back" data-close data-i18n-attr="aria-label:aria.back">‹</button>
+    <p class="page-title" data-i18n="privacyCenter.title"></p>
+    <div class="set-rows">
+      <div class="set-row"><span></span><div class="seg"><button id="pcDownload" data-i18n="privacyCenter.download"></button></div></div>
+      <p class="set-hint" data-i18n="privacyCenter.downloadNote"></p>
+      <div class="set-sep"></div>
+      <p class="set-label" data-i18n="privacyCenter.memoriesTitle"></p>
+      <ul class="pc-mem-list" id="pcMemories"></ul>
+      <div class="set-sep"></div>
+      <p class="set-label" data-i18n="privacyCenter.historyTitle"></p>
+      <div class="set-row"><span></span><div class="seg"><button id="pcHistoryDelete" data-i18n="settings.delete"></button></div></div>
+      <p class="set-note" id="pcNote" aria-live="polite"></p>
     </div>
   </section>
 
@@ -1987,7 +2013,7 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     // FAZ 4/5: hesaba bağlı satırlar (dondur/sil, hesap ayarları) sadece oturum açık kullanıcıya
     // gösterilir — backend'siz/işlevsiz buton gösterilmesin diye anonimde tamamen gizlenir.
     $("acctManageRow").hidden=!currentUser;$("acctManageSep").hidden=!currentUser;
-    $("acctSettingsRow").hidden=!currentUser;
+    $("acctSettingsRow").hidden=!currentUser;$("privacyCenterRow").hidden=!currentUser;
   }
   function toggleMore(open){const o=open===undefined?moreSheet.hidden:open;moreSheet.hidden=!o;moreBtn.setAttribute("aria-expanded",String(o));}
   function navGo(k){
@@ -3407,6 +3433,65 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     const n=raw?Math.max(1,Math.min(1440,parseInt(raw,10)||0)):null;
     timeUsage=getTimeUsage();timeUsage.limitMin=n;timeUsage.warned=false;store(K_TIME,timeUsage);
     $("timeSaveNote").textContent=t("time.limitSaved");
+  });
+
+  /* ---- FAZ 5: Gizlilik Merkezi — verilerimi indir (JSON), hafızayı gör/sil, geçmişi sil ---- */
+  $("privacyCenterOpen").addEventListener("click",()=>{renderPrivacyCenter();openPage($("privacyCenter"));setActive("");});
+  async function renderPrivacyCenter(){
+    $("pcNote").textContent="";$("pcNote").classList.remove("is-error");
+    const ul=$("pcMemories");ul.innerHTML="";
+    if(!currentUser)return;
+    try{
+      const sb=await getSupabase();if(!sb)return;
+      const{data,error}=await sb.from("user_memories").select("id,persona,content,updated_at").eq("user_id",currentUser.id).order("updated_at",{ascending:false});
+      if(error)throw error;
+      if(!data||!data.length){const li=document.createElement("li");li.className="pc-mem-row";li.textContent=t("privacyCenter.memoriesEmpty");ul.appendChild(li);return;}
+      for(const m of data){
+        const li=document.createElement("li");li.className="pc-mem-row";
+        const txt=document.createElement("span");txt.className="pc-mem-text";txt.dir="auto";
+        const persona=document.createElement("span");persona.className="pc-mem-persona";persona.textContent=m.persona;
+        txt.appendChild(persona);txt.appendChild(document.createTextNode(m.content));
+        const del=document.createElement("button");del.type="button";del.textContent=t("privacyCenter.memoryDelete");
+        del.addEventListener("click",async()=>{
+          try{const sb2=await getSupabase();await sb2.from("user_memories").delete().eq("id",m.id);li.remove();toast(t("privacyCenter.memoryDeleted"));}catch(e){}
+        });
+        li.appendChild(txt);li.appendChild(del);ul.appendChild(li);
+      }
+    }catch(e){const li=document.createElement("li");li.className="pc-mem-row";li.textContent=t("acctManage.delete.error");ul.appendChild(li);}
+  }
+  $("pcDownload").addEventListener("click",async()=>{
+    if(!currentUser)return;
+    $("pcNote").classList.remove("is-error");$("pcNote").textContent=t("auth.loading");
+    try{
+      const sb=await getSupabase();if(!sb)throw new Error("no-sb");
+      const[{data:profile},{data:sohbetler},{data:mesajlar},{data:memories}]=await Promise.all([
+        sb.from("profiles").select("username,birth_year,created_at").eq("id",currentUser.id).single(),
+        sb.from("sohbetler").select("id,persona,title,created_at,updated_at").eq("user_id",currentUser.id),
+        sb.from("mesajlar").select("sohbet_id,role,content,created_at").eq("user_id",currentUser.id),
+        sb.from("user_memories").select("persona,content,created_at,updated_at").eq("user_id",currentUser.id),
+      ]);
+      const payload={
+        exportedAt:new Date().toISOString(),
+        note:"Photos and collage boards are stored only on your device and are not included here.",
+        account:{email:currentUser.email,username:profile?.username,birthYear:profile?.birth_year,createdAt:profile?.created_at},
+        sohbetler:sohbetler||[],mesajlar:mesajlar||[],hafizaNotlari:memories||[],
+      };
+      const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+      const url=URL.createObjectURL(blob),a=document.createElement("a");
+      a.href=url;a.download="erebiel-data.json";document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),4000);
+      $("pcNote").textContent="";
+    }catch(e){$("pcNote").classList.add("is-error");$("pcNote").textContent=t("acctManage.delete.error");}
+  });
+  let pcDeleteArmed=null;
+  $("pcHistoryDelete").addEventListener("click",async()=>{
+    const btn=$("pcHistoryDelete");
+    if(!pcDeleteArmed){btn.textContent=t("settings.deleteConfirm");pcDeleteArmed=setTimeout(()=>{pcDeleteArmed=null;btn.textContent=t("settings.delete");},4000);return;}
+    clearTimeout(pcDeleteArmed);pcDeleteArmed=null;btn.textContent=t("settings.delete");
+    $("pcNote").classList.remove("is-error");
+    const ok=await deleteAllHistory();
+    $("pcNote").textContent=t(ok?"note.deleted":"note.deleteFailed");
+    if(!ok)$("pcNote").classList.add("is-error");
   });
 
   /* ---- FAZ 5: Hakkında ---- */
