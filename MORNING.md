@@ -110,9 +110,31 @@ hiçbir şey çalıştırılmadı. Her adım kendi commit'i olarak giris-sistemi
    — bkz. aşağıdaki migration sırası), `supabase/emails/*.md` taslakları, `tools/test-account-delete.mjs`
    (sahte veritabanı testi, 8/8 geçti — `node tools/test-account-delete.mjs`).
 
+## Yapılanlar (commit sırasıyla) — FAZ 5
+
+6. `e179286` — Hakkında sayfası + "geçmişi sil" artık oturum açık hesapta Postgres'i de siliyor.
+7. `42e575c` — Ayarlar > Hesap: kullanıcı adı, e-posta, şifre değiştir.
+8. `0466c3c` — Ayarlar > Zaman yönetimi: günlük süre takibi + uygulama-içi hatırlatma (gerçek push değil).
+9. `50d59c5` — Ayarlar > Gizlilik Merkezi: verilerimi indir (JSON), hafızayı gör/sil, geçmişi sil.
+10. `ac2bdfc` — Ayarlar > Cihaz izinleri: kamera izin durumu göstergesi.
+
+- **Yapılamadı (FAZ 5, bilerek — "backend'siz buton gösterme" talimatına uyarak HİÇ gösterilmedi):**
+  - **Bildirimler:** gerçek push bildirimi altyapısı (service worker, VAPID, sunucu tarafı gönderim)
+    yok. Zaman yönetimi hatırlatması uygulama İÇİNDE çalışan gerçek bir toast'tur, push DEĞİLDİR —
+    bu yüzden "Bildirimler" diye ayrı, çalışmayan bir ayar sayfası eklenmedi.
+  - **Arşiv, Kaydedilenler:** Instagram'daki karşılıkları "gönderi" (post) kavramına bağlı; gönderi
+    özelliği henüz yok (FAZ 7, en sona bırakıldı, bu gece muhtemelen başlanamayacak). Bu iki satır
+    anlamsız/boş bir sayfa açmamak için eklenmedi; FAZ 7'de gönderilerle birlikte eklenmeli.
+  - **Ses (Dil ve ses):** dil kısmı zaten vardı (settings.language); ses (ElevenLabs) henüz
+    entegre değil (roadmap: v1 sonrası). Dil seçicinin yanına bunu açıkça söyleyen bir not eklendi.
+- Settings menüsü tam bir Instagram grid/kategori yeniden tasarımı DEĞİL — var olan düz liste
+  (`.set-rows`) üzerine yeni satırlar eklendi. **Neden:** görsel yeniden tasarımı canlı tarayıcıda test
+  edemeden (Supabase/Vercel çalıştırılamıyor, sadece statik dosya okunabiliyor) riske atmak yerine
+  işlevsel tamlık tercih edildi; tasarım zaten "benim" (kullanıcının) olacak (FAZ 7 notu).
+
 ## Devam ediyor / sıradaki
 
-FAZ 5 (Ayarlar/Instagram menüsü) — sıradaki.
+Beta kontrolleri — sıradaki.
 
 ## Yapılamayanlar
 
