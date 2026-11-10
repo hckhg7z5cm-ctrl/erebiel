@@ -1140,6 +1140,20 @@ background:radial-gradient(circle at 36% 32%,#FFFBF0 0%,#F4E6C8 16%,#E0CBA0 32%,
     </div>
   </div>
 
+  <!-- ageGate: FAZ 6 — anonim akışta AGE_TIER için zorunlu, bir kerelik doğum yılı sorusu. Oturum açık
+       kullanıcıya hiç gösterilmez (DB zaten ≥18 garanti eder). İlk Archon/Multivac/Mirror denemesinde açılır. -->
+  <div class="safety-overlay" id="ageGate">
+    <div class="safety-card">
+      <span data-i18n="ageGate.title"></span>
+      <br><br><span data-i18n="ageGate.subtitle"></span>
+      <form id="ageGateForm" style="margin-top:1.2em;display:flex;flex-direction:column;gap:.8em;align-items:center">
+        <input class="set-input" type="number" id="ageGateYear" inputmode="numeric" required data-i18n-attr="placeholder:ageGate.placeholder;aria-label:ageGate.placeholder">
+        <button type="submit" class="x" data-i18n="ageGate.submit"></button>
+      </form>
+      <p class="set-note is-error" id="ageGateError" aria-live="polite"></p>
+    </div>
+  </div>
+
   <!-- freezeOverlay: FAZ 4 — oturum açık ve dondurulmuş bir hesapla giriş yapılınca gösterilir. -->
   <div class="safety-overlay" id="freezeOverlay">
     <div class="safety-card">
@@ -1682,8 +1696,10 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     try {
       const r = await fetch("/api/config");
       if (!r.ok) throw new Error("config " + r.status);
-      const { supabaseUrl, supabaseAnonKey } = await r.json();
+      const { supabaseUrl, supabaseAnonKey, testMinAge } = await r.json();
       client = createClient(supabaseUrl, supabaseAnonKey);
+      // FAZ 6: anonim yaş beyanının tabanı (bkz. api/config.js) — TEST_MIN_AGE tanımlı değilse 13 kalır.
+      window.__anonAgeFloor = Number.isFinite(testMinAge) && testMinAge > 0 ? testMinAge : 13;
     } catch (e) {
       console.error("supabase config yüklenemedi:", e);
     } finally {
@@ -1722,7 +1738,12 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
     const token=await authToken(),headers={"Content-Type":"application/json"};
     const body={persona:p,messages:msgs,lang:i18n.lang()};
     if(token){headers.Authorization="Bearer "+token;if(sohbetId)body.sohbetId=sohbetId;}
-    else if(p!=="mirror")body.code=syncCode(true);
+    else{
+      if(p!=="mirror")body.code=syncCode(true);
+      // FAZ 6: AGE_TIER'ın SUNUCUDAKİ (atlatılamaz) hesabı için — istemci burada yalnızca beyan edileni
+      // taşır, kendi kararını vermez.
+      const by=getDeclaredBirthYear();if(by!=null)body.birthYear=by;
+    }
     const r=await fetch("/api/chat",{method:"POST",headers,body:JSON.stringify(body)});
     if(!r.ok){const e=new Error("HTTP "+r.status);e.status=r.status;throw e;}
     // cevap akışla (SSE) gelir: onDelta(o ana kadarki metin) her parçada çağrılır; "done" tam ve temiz metni verir
@@ -1812,9 +1833,48 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
 
   /* ---- server history, keyed by a private sync code (Crockford base32, 20 chars ≈ 100 bits) ---- */
   const K_SYNC="erebiel-sync-code",CODE_ABC="0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+  // FAZ 6: AGE_TIER — anonim akışta hesap/doğrulama yok, bu yüzden K_SYNC gibi kasıtlı olarak ÖNEKSİZ
+  // (cihaz bazlı) kalır; bir hesaba bağlanmaz, hesaplar arası ayrılmaz.
+  const K_AGE="erebiel-birth-year";
+  const TEEN_1314_DAILY_LIMIT_MIN=60; // tek sabit — 13-14 yaş grubu için değiştirilemez günlük süre sınırı
   function genCode(){const b=crypto.getRandomValues(new Uint8Array(20));let s="";for(const x of b)s+=CODE_ABC[x&31];return s.match(/.{4}/g).join("-");}
   function normCode(v){const s=String(v||"").toUpperCase().replace(/[^0-9A-Z]/g,"").replace(/O/g,"0").replace(/[IL]/g,"1");return /^[0-9A-HJKMNP-TV-Z]{20}$/.test(s)?s.match(/.{4}/g).join("-"):null;}
   function syncCode(create){let c=load(K_SYNC);if(!normCode(c))c=null;if(!c&&create){c=genCode();store(K_SYNC,c);}return c;}
+
+  /* ---- FAZ 6: AGE_TIER (anonim akış) ----
+     Oturum açık kullanıcı her zaman "adult" (DB zaten ≥18 garanti eder, bkz. api/chat.js). Anonimde
+     doğum yılı bir kerelik bir soruyla (ageGate) alınır, K_AGE'de saklanır, her sohbet isteğinde
+     api/chat.js'e gönderilir (asıl, atlatılamaz kontrol SUNUCUDADIR — burası yalnızca istemci tarafı
+     deneyimi: Mirror'ı erkenden gizlemek, hatırlatmaları göstermek, 13-14 süre sınırını uygulamak). */
+  function getDeclaredBirthYear(){const v=load(K_AGE);return Number.isFinite(v)?v:null;}
+  function anonAgeFloor(){return window.__anonAgeFloor||13;}
+  function computeClientAgeTier(){
+    if(currentUser)return "adult";
+    const by=getDeclaredBirthYear();if(by==null)return null;
+    const age=new Date().getFullYear()-by;
+    if(age>=18)return "adult";
+    if(age>=15)return "teen_15_17";
+    return "teen_13_14";
+  }
+  let pendingGateAction=null;
+  function openAgeGate(next){pendingGateAction=next;$("ageGateError").textContent="";$("ageGateYear").value="";$("ageGate").classList.add("on");}
+  $("ageGateForm").addEventListener("submit",e=>{
+    e.preventDefault();
+    const year=parseInt($("ageGateYear").value,10),nowYear=new Date().getFullYear();
+    if(!Number.isFinite(year)||year<1900||year>nowYear){$("ageGateError").textContent=t("ageGate.err.invalid");return;}
+    const floor=anonAgeFloor();
+    if(nowYear-year<floor){$("ageGateError").textContent=t("ageGate.err.tooYoung",{age:floor});return;}
+    store(K_AGE,year);
+    const action=pendingGateAction;pendingGateAction=null;
+    $("ageGate").classList.remove("on");
+    if(action)action();
+  });
+  // Oturum açık kullanıcıya ya da zaten beyan etmiş bir cihaza kapıyı hiç göstermez, direkt geçer.
+  function withAgeGate(action){return()=>{if(currentUser||getDeclaredBirthYear()!=null){action();return;}openAgeGate(action);};}
+  function teenDailyBlocked(){
+    if(computeClientAgeTier()!=="teen_13_14")return false;
+    return getTimeUsage().ms>=TEEN_1314_DAILY_LIMIT_MIN*60000;
+  }
   async function historyCall(code,action,persona){
     const r=await fetch("/api/history",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,action,persona})});
     if(!r.ok){const e=new Error("HTTP "+r.status);e.status=r.status;throw e;}
@@ -1856,6 +1916,10 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
   function enterChat(p,conv){
     persona=p;convId=conv?conv.id:newId();api=conv?conv.api.slice():[];busy=false;chat.setAttribute("data-persona",p);input.value="";messages.innerHTML="";
     addBubble("bot",greet(p));
+    // FAZ 6: teen katmanlarında oturum başında kısa, deterministik bir yapay-zekâ hatırlatması (modelin
+    // kendiliğinden hatırlaması beklenmez; bu bir UI mesajıdır, modelin cevabı değil). Yalnızca YENİ
+    // oturumlarda (geçmişten açılan bir sohbette tekrar tekrar gösterilmesin diye !conv).
+    if(!conv){const tier=computeClientAgeTier();if(tier&&tier!=="adult")addBubble("bot",t("teen.reminder"));}
     if(conv)conv.api.forEach(m=>addBubble(m.role,m.content));
     // son mesaj cevapsız kalmış bir kullanıcı mesajıysa (akış kopmuş, sayfa kapanmış) yeniden denemeyi sun
     if(conv&&api.length&&api[api.length-1].role==="user")addRetry(p,api,convId,"net",null);
@@ -1866,8 +1930,15 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
   function backToGate(){stopSpeak();chat.classList.remove("show");setTimeout(()=>{chat.hidden=true;showHome();if(!historyEl.hidden)renderHistory();},reduce?0:400);persona=null;api=[];convId=null;messages.innerHTML="";}
   async function send(){
     const text=input.value.trim();if(!text||busy||!persona)return;
+    // FAZ 6: 13-14 yaş grubu için sabit günlük süre sınırı — sunucu değil, bu yeni mesaj GÖNDERİLMEDEN
+    // istemci engeller (zaten harcanmış süreyi geri almaz, sadece yeni mesajı durdurur).
+    if(teenDailyBlocked()){addBubble("bot",t("teen.dailyLimitReached"));return;}
     const p=persona,hist=api,id=convId;
     stopSpeak();input.value="";input.style.height="2.7em";addBubble("user",text);hist.push({role:"user",content:text});saveChat(id,p,hist);
+    // FAZ 6: "bağ yoğunlaştıkça" kısa hatırlatma — basit, dokümante edilmiş bir ölçüt: aynı oturumda her
+    // 20 kullanıcı mesajında bir (modelin hatırlaması beklenmez, bu bir UI mesajıdır).
+    const tier=computeClientAgeTier();
+    if(tier&&tier!=="adult"){const turns=hist.filter(m=>m.role==="user").length;if(turns>0&&turns%20===0)addBubble("bot",t("teen.reminder"));}
     reply(p,hist,id);
   }
   // cevabı akışla yazar; akış koparsa kullanıcının mesajı yerinde kalır ve "tekrar dene" düğmesi çıkar
@@ -3446,8 +3517,11 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
   $("timeManageOpen").addEventListener("click",()=>{
     timeUsage=getTimeUsage();
     $("timeTodayText").textContent=t("time.today",{min:Math.round(timeUsage.ms/60000)});
-    $("timeLimitInput").value=timeUsage.limitMin||"";
-    $("timeSaveNote").textContent="";
+    // FAZ 6: 13-14 yaş grubunda bu sınır SABİTTİR, kullanıcı değiştiremez (bkz. TEEN_1314_DAILY_LIMIT_MIN).
+    const forcedTeen=computeClientAgeTier()==="teen_13_14";
+    $("timeLimitInput").value=forcedTeen?TEEN_1314_DAILY_LIMIT_MIN:(timeUsage.limitMin||"");
+    $("timeLimitInput").disabled=forcedTeen;$("timeLimitSave").disabled=forcedTeen;
+    $("timeSaveNote").textContent=forcedTeen?t("time.teenFixed"):"";
     openPage($("timeManage"));setActive("");
   });
   $("timeLimitSave").addEventListener("click",()=>{
@@ -3606,8 +3680,14 @@ window.supabaseReady=new Promise(res=>{window.__resolveSupabase=res;});
   $("safetyClose").addEventListener("click",()=>{$("safety").classList.remove("on");setPrivacy(false);});
 
   /* ---- wiring ---- */
-  document.querySelectorAll("#threshold [data-persona]").forEach(el=>el.addEventListener("click",()=>enterChat(el.getAttribute("data-persona"))));
-  $("mirrorBtn").addEventListener("click",openMirror);
+  document.querySelectorAll("#threshold [data-persona]").forEach(el=>el.addEventListener("click",withAgeGate(()=>enterChat(el.getAttribute("data-persona")))));
+  // FAZ 6: Mirror (yüz/ses/yansıma) teen katmanlarına tamamen kapalı — istemci burada erkenden nazikçe
+  // söyler, sunucu (api/chat.js, persona==="mirror" && tier!=="adult") AYRICA ve ATLATILAMAZ engeller.
+  $("mirrorBtn").addEventListener("click",withAgeGate(()=>{
+    const tier=computeClientAgeTier();
+    if(tier&&tier!=="adult"){toast(t("mirror.teenBlocked"));return;}
+    openMirror();
+  }));
   $("mClose").addEventListener("click",closeMirror);
   backBtn.addEventListener("click",backToGate);
   sendBtn.addEventListener("click",send);
